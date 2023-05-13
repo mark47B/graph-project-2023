@@ -1,0 +1,15 @@
+[tool.poetry]
+name = "graph-project-2023"
+version = "0.1.0"
+description = ""
+authors = ["mark47B <windachae47@gmail.com>"]
+readme = "README.md"
+packages = [{include = "graph_project_2023"}]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
