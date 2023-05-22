@@ -1,4 +1,5 @@
 from typing import Optional
+import time
 from pydantic import BaseModel
 import numpy as np
 import pandas as pd
@@ -286,6 +287,24 @@ class StaticGraph(BaseModel):
         sample_graph = method(self.get_largest_connected_component())
         shortest_paths: np.matrix = np.power(sample_graph.adjacency_matrix, sample_graph.count_vertices())
         return np.max(shortest_paths)
+    
+    def compare_floyd_warshall_and_matrix_power(self, method: SelectApproach):
+        sample_graph = method(self.get_largest_connected_component())
+        start_matrix_power = time.time()
+        shortest_paths: np.matrix = np.power(sample_graph.adjacency_matrix, sample_graph.count_vertices())
+        end_matrix_power = time.time()
+        shortest_paths: np.matrix = sample_graph.adjacency_matrix
+        cnt_verts = sample_graph.count_vertices()
+        start_floyd_warshall = time.time()
+        for k in range(cnt_verts):
+            for i in range(cnt_verts):
+                for j in range(cnt_verts):
+                    if shortest_paths[j][k] != 0 and shortest_paths[i][j] != 0:
+                        shortest_paths[i][j] = min(shortest_paths[i][j], shortest_paths[i][k] + shortest_paths[k][j])
+        end_floyd_warshall = time.time()
+        print("Метод с возведением матрицы в степень n: ", end_matrix_power - start_matrix_power)
+        print("Алгоритм Флойда-Уоршелла: ", end_floyd_warshall - start_floyd_warshall)
+        
 
     def percentile_distance(self, method: SelectApproach, percentile: int = 90) -> float:
         sample_graph = method(self.get_largest_connected_component())
