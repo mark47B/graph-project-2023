@@ -274,25 +274,21 @@ class StaticGraph(BaseModel):
         return self.number_of_connected_components
 
     def share_of_vertices(self) -> float: 
-        # если максимальную по мощность компоненту слабой связности не нашли, найдём
-        if self.largest_connected_component is None:
-            self.__update_number_of_connected_components_and_largest_connected_component()
-
-        return self.largest_connected_component.count_vertices() / self.count_vertices()
+        return self.get_largest_connected_component().count_vertices() / self.count_vertices()
 
     def get_radius(self, method: SelectApproach) -> int:
-        sample_graph = method(self.largest_connected_component)
+        sample_graph = method(self.get_largest_connected_component())
         shortest_paths: np.matrix = np.power(sample_graph.adjacency_matrix, sample_graph.count_vertices())
         return np.min([np.max(shortest_paths[i]) for i in range(sample_graph.count_vertices())])
         
 
     def get_diameter(self, method: SelectApproach) -> int:
-        sample_graph = method(self.largest_connected_component)
+        sample_graph = method(self.get_largest_connected_component())
         shortest_paths: np.matrix = np.power(sample_graph.adjacency_matrix, sample_graph.count_vertices())
         return np.max(shortest_paths)
 
     def percentile_distance(self, method: SelectApproach, percentile: int = 90) -> float:
-        sample_graph = method(self.largest_connected_component)
+        sample_graph = method(self.get_largest_connected_component())
         cnt_verts = sample_graph.count_vertices()
         shortest_paths: np.matrix = np.power(sample_graph.adjacency_matrix, cnt_verts)
         dists = []
@@ -304,23 +300,23 @@ class StaticGraph(BaseModel):
         return dists[np.ceil(percentile / 100 * len(dists))]
     
     def average_cluster_factor(self) -> float:
-        cnt_verts = self.largest_connected_component.count_vertices()
+        cnt_verts = self.get_largest_connected_component().count_vertices()
         result = 0
         for i in range(cnt_verts):
-            i_degree = self.largest_connected_component.node_set.at[i, "node_degree"]
+            i_degree = self.get_largest_connected_component().node_set.at[i, "node_degree"]
             if i_degree < 2: 
                 continue
             l_u = 0  # будем учитывать каждое ребро два раза, поэтому фактически это 2 * L_u
             for j in range(cnt_verts):
-                if i == j or self.largest_connected_component.adjacency_matrix[i][j] is False:
+                if i == j or self.get_largest_connected_component().adjacency_matrix[i][j] is False:
                     continue
                 for k in range(cnt_verts):
-                    if k == j or k == i or self.largest_connected_component.adjacency_matrix[i][k] is False:
+                    if k == j or k == i or self.get_largest_connected_component().adjacency_matrix[i][k] is False:
                         continue
-                    if self.largest_connected_component.adjacency_matrix[j][k] is True:
-                        j_number = self.largest_connected_component.node_set.at[j, "number"]
-                        k_number = self.largest_connected_component.node_set.at[k, "number"]
-                        l_u += len(self.largest_connected_component.edge_set.loc[
+                    if self.get_largest_connected_component().adjacency_matrix[j][k] is True:
+                        j_number = self.get_largest_connected_component().node_set.at[j, "number"]
+                        k_number = self.get_largest_connected_component().node_set.at[k, "number"]
+                        l_u += len(self.get_largest_connected_component().edge_set.loc[
                             ("start_node" == min(j_number, k_number)) & ("end_node" == max(j_number, k_number))
                         ])
 
@@ -329,15 +325,15 @@ class StaticGraph(BaseModel):
 
     def assortative_factor(self) -> float:
         # считаем по формулке из статьи Ньюмана 2002 года
-        m = self.largest_connected_component.count_edges()
+        m = self.get_largest_connected_component().count_edges()
         r1 = 0
         r2 = 0
         r3 = 0
         for i in range(m):
-            v = self.largest_connected_component.edge_set.at[i, "start_node"]
-            v_degree = self.largest_connected_component.node_set.loc["number" == v, "node_degree"]
-            u = self.largest_connected_component.edge_set.at[i, "end_node"]
-            u_degree = self.largest_connected_component.node_set.loc["number" == u, "node_degree"]
+            v = self.get_largest_connected_component().edge_set.at[i, "start_node"]
+            v_degree = self.get_largest_connected_component().node_set.loc["number" == v, "node_degree"]
+            u = self.get_largest_connected_component().edge_set.at[i, "end_node"]
+            u_degree = self.get_largest_connected_component().node_set.loc["number" == u, "node_degree"]
             
             r1 += u_degree * v_degree
             r2 += (u_degree + v_degree) / 2
