@@ -83,14 +83,19 @@ class TemporalGraph:
                                     ))
 
     def get_static_graph(self, t_1: int, t_2: int) -> StaticGraph:
-        # Выделяем нужные рёбра
-        edge_in_static = [x[1] for x in self.edge_list if t_1 <= x[0] <= t_2]
-        # Ищем диапазон для матрицы смежностей
-        max_number_of_node = max(edge_in_static).get_max_node().number
-        print('----------------------', max_number_of_node, '------------------')
-        # Создаём матрицу смежностей
-        aj_matr = np.zeros((max_number_of_node, max_number_of_node))
-        for e in edge_in_static:
-            aj_matr[e.end_node.number, e.start_node.number] = e.weight
+#         # Выделяем нужные рёбра
+#         edge_in_static = [x[1] for x in self.edge_list if t_1 <= x[0] <= t_2]
+#         # Ищем диапазон для матрицы смежностей
+#         max_number_of_node = max(edge_in_static).get_max_node().number
+#         print('----------------------', max_number_of_node, '------------------')
+#         # Создаём матрицу смежностей
+#         aj_matr = np.zeros((max_number_of_node, max_number_of_node))
+#         for e in edge_in_static:
+#             aj_matr[e.end_node.number, e.start_node.number] = e.weight
             
-        return StaticGraph(time=(t_1, t_2), edge_list=edge_in_static.copy(), adjacency_matrix=aj_matr)
+#         return StaticGraph(time=(t_1, t_2), edge_list=edge_in_static.copy(), adjacency_matrix=aj_matr)
+        SG = StaticGraph()
+        for x in self.edge_list:
+            if t_1 <= x[0] <= t_2:
+                SG.add_edge(x[1])
+        return SG
