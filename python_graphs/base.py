@@ -47,8 +47,7 @@ class TemporalGraph:
             list_of_items = raw_data.read().split('\n')
             list_of_items.pop(-1)
             for item in list_of_items:
-                item = item.split('\t')
-                item.pop(2)
+                item = item.split(" ")
                 if int(item[0]) == int(item[1]):
                     continue
                 self.timestamps.append(int(item[-1]))
