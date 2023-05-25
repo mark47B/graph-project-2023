@@ -160,25 +160,15 @@ def combining_node_activity(node: pd.DataFrame)->pd.DataFrame:
 
     num_of_nodes = node.shape[0]
     num_of_feature = 21
-
-    
-    combined_values = []
-    start_nodes_vector = []
-
-    for i, row in enumerate(values):
-        repeated_row = np.tile(row, num_of_nodes - i - 1)
-        repeated_node = np.tile(i, num_of_nodes - i - 1)
-        
-        combined_values.extend(repeated_row)
-        start_nodes_vector.extend(repeated_node)
+    feature_column_name = "feature_vector"
 
 
-    # Преобразование объединенных значений в массив NumPy
-    first_combined_array = np.array(combined_values)
+    start_nodes_vector = np.repeat(np.arange(len(values)), num_of_nodes - np.arange(len(values)) - 1)
     
     end_nodes_vector = list(np.concatenate([np.arange(i, num_of_nodes) for i in range(1, num_of_nodes)]))
     
-    # Замена номеров строк на значения из DataFrame и объединение в один вектор
+    first_combined_array = np.concatenate([values[start_nodes_vector[i]] for i in range(len(start_nodes_vector))])
+    
     second_combined_array = np.concatenate([values[end_nodes_vector[i]] for i in range(len(end_nodes_vector))])
     
     feature_by_sym = combining_node_activity_sum(first_combined_array,second_combined_array)
@@ -193,8 +183,8 @@ def combining_node_activity(node: pd.DataFrame)->pd.DataFrame:
                                    feature_by_max[i:i+num_of_feature]]) 
                    for i in range(0, feature_by_sym.shape[0], num_of_feature)]
     
-    feature_column_name = "feature_vector"
-    Edge_feature = pd.DataFrame({"start_node":start_nodes_vector, "end_node":end_nodes_vector, feature_column_name: all_feature})
+    Edge_feature = pd.DataFrame({"start_node":start_nodes_vector, "end_node":end_nodes_vector,feature_column_name:all_feature})
+
     return (Edge_feature,feature_column_name)
 
 
@@ -338,19 +328,13 @@ def combining_node_activity_for_absent_edge(node: pd.DataFrame, edge: pd.DataFra
     feature_column_name = "feature_vector"
 
 
-    combined_values = []
-    start_nodes_vector = []
-
-    for i, row in enumerate(values):
-        repeated_node = np.tile(i, num_of_nodes - i - 1)
-        start_nodes_vector.extend(repeated_node)
-        
+    start_nodes_vector = np.repeat(np.arange(len(values)), num_of_nodes - np.arange(len(values)) - 1)
+    
     end_nodes_vector = list(np.concatenate([np.arange(i, num_of_nodes) for i in range(1, num_of_nodes)]))
     
     Edge_feature = pd.DataFrame({"start_node":start_nodes_vector, "end_node":end_nodes_vector})
 
-    
-    # Удаление строк из первого датафрейма, где значения в столбцах 'a' и 'b' совпадают со значениями во втором датафрейме
+    # Оставляем только ребра, которых нет в статичном графе
     df_merged = Edge_feature.merge(edge[['start_node', 'end_node']], on=['start_node', 'end_node'], how='left', indicator=True)
     df_filtered = df_merged[df_merged['_merge'] == 'left_only']
     df_filtered = df_filtered.drop(columns='_merge')
