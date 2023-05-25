@@ -38,7 +38,7 @@ def get_stats(network_info):
         '90 проц.расстояния(свв)': staticGraph.percentile_distance(sg_rsv),
         'Коэф.ассортативности': staticGraph.assortative_factor(),
         'Сред.класт.коэф.сети': staticGraph.average_cluster_factor(),
-        'AUC': mdtr.get_performance(tmpGraph),
+        'AUC': mdtr.get_performance(tmpGraph, 0.67),
     }
 
 
