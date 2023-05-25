@@ -63,7 +63,11 @@ class TemporalGraph:
     def get_static_graph(self, l: float, r: float, prediction: bool = False) -> 'StaticGraph':
         t_1 = self.edge_list[int(l * (len(self.edge_list) - 1))].timestamp
         t_2 = self.edge_list[int(r * (len(self.edge_list) - 1))].timestamp
-        sg = StaticGraph(t_1, t_2, len(set([i.number for i in self.edge_list])), prediction)
+        st = set()
+        for i in self.edge_list:
+            st.add(i.start_node.number)
+            st.add(i.end_node.number)
+        sg = StaticGraph(t_1, t_2, len(st), prediction)
         for x in self.edge_list:
             if t_1 <= x.timestamp <= t_2:
                 sg.add_edge(x)
