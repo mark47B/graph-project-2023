@@ -11,6 +11,7 @@
 
 import numpy as np
 import pandas as pd
+import pydantic_numpy.dtype as pnd
 
 
 def node_degree(numbers_of_nodes:np.array, adjacency_matrix:np.array):
@@ -258,7 +259,7 @@ def merge_with_temporal_graph_number(df: pd.DataFrame,node: pd.DataFrame):
     
     return df
 
-def count_static_topological_features(df: pd.DataFrame):
+def count_static_topological_features(df: pd.DataFrame, adjacency_matrix: pnd.NDArrayBool):
     '''
     Рассчет статичных топологических признаков
     '''
@@ -268,7 +269,7 @@ def count_static_topological_features(df: pd.DataFrame):
     df["preferential_attachment"] = df.apply(lambda row: preferential_attachment(row["start_node"],row["end_node"],adjacency_matrix), axis=1)
 
 
-def feature_for_edges(edge: pd.DataFrame, node: pd.DataFrame, adjacency_matrix: np.array, t_min:int, t_max:int):
+def feature_for_edges(edge: pd.DataFrame, node: pd.DataFrame, adjacency_matrix: pnd.NDArrayBool, t_min:int, t_max:int):
     '''
     Получение датафрейма с признаками для ребер
     '''
@@ -282,7 +283,7 @@ def feature_for_edges(edge: pd.DataFrame, node: pd.DataFrame, adjacency_matrix: 
 
     Edge_feature = merge_with_temporal_graph_number(Edge_feature, node)
     
-    count_static_topological_features(Edge_feature)
+    count_static_topological_features(Edge_feature, adjacency_matrix)
             
     Edge_feature = split_list_cell(Edge_feature, feature_column_name)
 
@@ -363,7 +364,7 @@ def combining_node_activity_for_absent_edge(node: pd.DataFrame, edge: pd.DataFra
     Edge_feature[feature_column_name] =  all_feature
     return (Edge_feature,feature_column_name)
 
-def feature_for_absent_edges(edge: pd.DataFrame, node: pd.DataFrame, adjacency_matrix: np.array, t_min:int, t_max:int):
+def feature_for_absent_edges(edge: pd.DataFrame, node: pd.DataFrame, adjacency_matrix: pnd.NDArrayBool, t_min:int, t_max:int):
     '''
     Получение датафрейма с признаками для ребер
     '''
@@ -377,7 +378,7 @@ def feature_for_absent_edges(edge: pd.DataFrame, node: pd.DataFrame, adjacency_m
 
     Edge_feature = merge_with_temporal_graph_number(Edge_feature, node)
     
-    count_static_topological_features(Edge_feature)
+    count_static_topological_features(Edge_feature, adjacency_matrix)
             
     Edge_feature = split_list_cell(Edge_feature, feature_column_name)
 
