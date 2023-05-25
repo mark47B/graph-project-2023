@@ -1,5 +1,5 @@
 from .base import TemporalGraph
-from .feature_formation import feature_for_edges
+from .feature_formation import feature_for_edges, feature_for_absent_edges
 import sklearn
 import numpy as np
 
@@ -27,8 +27,8 @@ def get_performance(temporalG: TemporalGraph, split_ratio: float):
 
     prediction_static_graph = temporalG.get_static_graph(split_ratio, 1, True)
     
-    Edge_feature = feature_for_edges(edge_feature_build_part, node_feature_build_part, build_static_graph.adjacency_matrix, t_min, t_max)
-    
+    Edge_feature = feature_for_absent_edges(edge_feature_build_part, node_feature_build_part, build_static_graph.adjacency_matrix, t_min, t_max)
+    print('Получили признаки')
     node_prediction_part = prediction_static_graph.get_node_set()
     edge_prediction_part = prediction_static_graph.get_edge_set()
 
@@ -62,7 +62,7 @@ def get_performance(temporalG: TemporalGraph, split_ratio: float):
     y = Edge_feature['number']
     
     X_train, X_test, y_train, y_test = (
-        sklearn.model_selection.train_test_split(X, y, random_state=random_state))
+        sklearn.model_selection.train_test_split(X, y, random_state=42))
     
     pipe = sklearn.pipeline.make_pipeline(
             sklearn.preprocessing.StandardScaler(),

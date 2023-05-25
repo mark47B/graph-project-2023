@@ -1,20 +1,17 @@
-Networks = ['email-Eu-core-temporal', 'munmun_digg_reply', 'opsahi-ucsocial','radoslaw_email','soc-sign-bitcoinalpha', 'sx-mathoverflow']
+import pandas as pd
+import numpy as np
+import python_graphs.base as graphs
+import python_graphs.model_training as mdtr
 
-networks_files_names = [ f'datasets/{i}/out.{i}' for i in Networks]
-number_of_datasets = 6
-datasets_info = {'Network': ['email-Eu-core-temporal', 'munmun_digg_reply', 'opsahi-ucsocial','radoslaw_email','soc-sign-bitcoinalpha', 'sx-mathoverflow'],
-'Label': ['EU','D-rep','UC','Rado','bitA','SX-MO'],
-'Category': ['Social',"Social","Information","Social","Social","Social"],
-'Edge type': ['Multi','Simple','Multi','Multi','Simple','Multi'],
-'Path': networks_files_names}
+import importlib
+importlib.reload(graphs)
 
-datasets_info = pd.DataFrame(datasets_info)
-
-# Таблица признаков для графа
-def get_stats(network_file_name: str):
+def get_stats(network_info):
     
-    tmpGraph = graphs.TemporalGraph(network_file_name)
+    tmpGraph = graphs.TemporalGraph(network_info['Path'])
+    print('загрузили граф')
     staticGraph = tmpGraph.get_static_graph(0.2, 0.6)
+    print('создали статичный')
     snowball_sample_approach = graphs.SelectApproach(0, 5)
     random_selected_vertices_approach = graphs.SelectApproach()
     sg_sb = snowball_sample_approach(staticGraph.get_largest_connected_component())
@@ -23,10 +20,10 @@ def get_stats(network_file_name: str):
     # ск - снежный ком
     # свв - случайный выбор вершин
     return {
-        'Сеть': network_file_name['Label'],
-        'Категория': network_file_name['Category'],
+        'Сеть': network_info['Label'],
+        'Категория': network_info['Category'],
         'Вершины': staticGraph.count_vertices(), 
-        'Тип ребер': network_file_name['Edge type'],
+        'Тип ребер': network_info['Edge type'],
         'Ребра':staticGraph.count_edges(),
         'Плотность графа':staticGraph.density(),
         'Доля вершин':staticGraph.share_of_vertices(),
@@ -41,13 +38,13 @@ def get_stats(network_file_name: str):
         '90 проц.расстояния(свв)': staticGraph.percentile_distance(sg_rsv),
         'Коэф.ассортативности': staticGraph.assortative_factor(),
         'Сред.класт.коэф.сети': staticGraph.average_cluster_factor(),
-        'AUC': get_performance(tmpGraph),
+        'AUC': mdtr.get_performance(tmpGraph),
     }
 
 
 def graph_features_tables(datasets_info: pd.DataFrame):
 
-    table = pd.DataFrame([get_stats(network) for index, network in datasets_info.iterrows()]).sort_values('Вершины')
+    table = pd.DataFrame([get_stats(network_info) for index, network_info in datasets_info.iterrows()]).sort_values('Вершины')
     
     columns_to_include_to_feature_network_table = [
         'Сеть',
