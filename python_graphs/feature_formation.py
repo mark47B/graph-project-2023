@@ -14,21 +14,21 @@ import pandas as pd
 import pydantic_numpy.dtype as pnd
 
 
-def node_degree(numbers_of_nodes:np.array, adjacency_matrix:np.array):
-    return np.sum(adjacency_matrix[numbers_of_nodes,:],axis=1)
+def node_degree(numbers_of_nodes:np.array, adjacency_matrix: pnd.NDArrayBool):
+    return np.sum(adjacency_matrix[numbers_of_nodes,:].astype(int),axis=1)
 
-def common_neighbours(u:int, v:int, adjacency_matrix:np.array) -> int:
-    return np.sum(np.where(adjacency_matrix[u,:]+adjacency_matrix[v,:] != 0, 1, 0))
+def common_neighbours(u:int, v:int, adjacency_matrix: pnd.NDArrayBool) -> int:
+    return np.sum(np.where(adjacency_matrix[u,:].astype(int) + adjacency_matrix[v,:].astype(int) != 0, 1, 0))
 
-def adamic_adar(u:int, v:int, adjacency_matrix:np.array) -> float:
-    return np.sum(1/node_degree(np.nonzero(adjacency_matrix[u,:]+adjacency_matrix[v,:]),adjacency_matrix))
+def adamic_adar(u:int, v:int, adjacency_matrix: pnd.NDArrayBool) -> float:
+    return np.sum(1/node_degree(np.nonzero(adjacency_matrix[u,:].astype(int) + adjacency_matrix[v,:].astype(int)),adjacency_matrix.astype(int)))
 
-def jaccard_coefficient(u:int, v:int, adjacency_matrix:np.array) -> float:
-    return np.sum(np.where(adjacency_matrix[u,:]-adjacency_matrix[v,:] == 0, 1, 0))/np.sum(
-        np.where(adjacency_matrix[u,:]+adjacency_matrix[v,:] != 0, 1, 0))
+def jaccard_coefficient(u:int, v:int, adjacency_matrix:pnd.NDArrayBool) -> float:
+    return np.sum(np.where(adjacency_matrix[u,:].astype(int) - adjacency_matrix[v,:].astype(int) == 0, 1, 0))/np.sum(
+        np.where(adjacency_matrix[u,:].astype(int) + adjacency_matrix[v,:].astype(int) != 0, 1, 0))
 
-def preferential_attachment(u:int, v:int, adjacency_matrix:np.array) -> int:
-    return np.prod(node_degree(np.array([u,v]),adjacency_matrix))
+def preferential_attachment(u:int, v:int, adjacency_matrix: pnd.NDArrayBool) -> int:
+    return np.prod(node_degree(np.array([u,v]), adjacency_matrix.astype(int)))
 
 # 3 функции для вычисления весов
 
