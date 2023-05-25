@@ -34,12 +34,11 @@ class Edge(BaseModel):
 
 
 class TemporalGraph:
-    edge_list: list[tuple[int, Edge]]
-    timestamps: list[int]
+    edge_list: list[Edge]
+    # timestamps: list[int]
 
     def __init__(self, path: str = './datasets/radoslaw_email/out.radoslaw_email_email'):
         self.edge_list = list()
-        self.timestamps = list()
         with open(path) as raw_data:
             raw_data.readline()
             raw_data.readline()
@@ -50,33 +49,32 @@ class TemporalGraph:
                 item = item.split(" ")
                 if int(item[0]) == int(item[1]):
                     continue
-                self.timestamps.append(int(item[-1]))
                 self.edge_list.append(
-                                    (int(item[-1]), 
                                     Edge(
                                         number=edge_number,
                                         start_node=Node(number=int(item[0])-1),
                                         end_node=Node(number=int(item[1])-1),
                                         timestamp=int(item[2]),
                                         )
-                                    ))
+                                    )
                 edge_number += 1
-        self.timestamps.sort()
+        self.edge_list.sort(key=lambda x: x.timestamp)
+
 
     def get_static_graph(self, l: float, r: float, prediction: bool = False) -> 'StaticGraph':
-        t_1 = self.timestamps[int(l * (len(self.timestamps) - 1))]
-        t_2 = self.timestamps[int(r * (len(self.timestamps) - 1))]
-        sg = StaticGraph(t_1, t_2, len(set([i[1].number for i in self.edge_list])), prediction)
+        t_1 = self.edge_list[int(l * (len(self.edge_list) - 1))].timestamp
+        t_2 = self.edge_list[int(r * (len(self.edge_list) - 1))].timestamp
+        sg = StaticGraph(t_1, t_2, len(set([i.number for i in self.edge_list])), prediction)
         for x in self.edge_list:
             if t_1 <= x[0] <= t_2:
                 sg.add_edge(x[1])
         return sg
     
     def get_max_timestamp(self):
-        return max(self.edge_list, key=lambda x: x[0])[0]
+        return max(self.edge_list, key=lambda x: x.timestamp).timestamp
     
     def get_min_timestamp(self):
-        return min(self.edge_list, key=lambda x: x[0])[0]
+        return min(self.edge_list, key=lambda x: x.timestamp).timestamp
 
 
 @dataclass
@@ -100,8 +98,6 @@ class StaticGraph:
             self.adjacency_matrix = None
         self.largest_connected_component = None
         self.number_of_connected_components = None
-
-
 
     def get_node_set(self) -> pd.DataFrame:
         # создадим датафрейм для вершин, если такового нет
