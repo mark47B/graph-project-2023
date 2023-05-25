@@ -262,6 +262,7 @@ class StaticGraph:
 
     def density(self) -> float:
         cnt_vert: int = self.count_vertices()
+        print('Посчитали полотность')
         return 2 * self.count_edges() / (cnt_vert * (cnt_vert - 1))
 
 
@@ -336,7 +337,7 @@ class StaticGraph:
         # если число компонент слабой связности не нашли, найдём
         if self.largest_connected_component is None:
             self.__update_number_of_connected_components_and_largest_connected_component()
-
+        print('Получили число компонент связности')
         return self.number_of_connected_components
 
     def share_of_vertices(self) -> float: 

@@ -14,9 +14,11 @@ def get_stats(network_info):
     print('создали статичный')
     snowball_sample_approach = graphs.SelectApproach(0, 5)
     random_selected_vertices_approach = graphs.SelectApproach()
+    print('snowball START')
     sg_sb = snowball_sample_approach(staticGraph.get_largest_connected_component())
+    print('random select START')
     sg_rsv = random_selected_vertices_approach(staticGraph.get_largest_connected_component())
-    
+    print('Получили статистику графа')
     # ск - снежный ком
     # свв - случайный выбор вершин
     return {
@@ -45,7 +47,7 @@ def get_stats(network_info):
 def graph_features_tables(datasets_info: pd.DataFrame):
 
     table = pd.DataFrame([get_stats(network_info) for index, network_info in datasets_info.iterrows()]).sort_values('Вершины')
-    
+    print(table)
     columns_to_include_to_feature_network_table = [
         'Сеть',
         'Категория',
