@@ -35,7 +35,6 @@ class Edge(BaseModel):
 
 class TemporalGraph:
     edge_list: list[Edge]
-    # timestamps: list[int]
 
     def __init__(self, path: str = './datasets/radoslaw_email/out.radoslaw_email_email'):
         self.edge_list = list()
@@ -66,8 +65,8 @@ class TemporalGraph:
         t_2 = self.edge_list[int(r * (len(self.edge_list) - 1))].timestamp
         sg = StaticGraph(t_1, t_2, len(set([i.number for i in self.edge_list])), prediction)
         for x in self.edge_list:
-            if t_1 <= x[0] <= t_2:
-                sg.add_edge(x[1])
+            if t_1 <= x.timestamp <= t_2:
+                sg.add_edge(x)
         return sg
     
     def get_max_timestamp(self):
