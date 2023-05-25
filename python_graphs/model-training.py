@@ -19,10 +19,7 @@ def get_performance(temporalG: TemporalGraph, split_ratio: float):
 
     t_min = temporalG.get_min_timestamp()
     t_max = temporalG.get_max_timestamp()
-    
-    edge_list_feature_build_part, edge_list_prediction_part = train_test_split_temporal_graph(temporalG.edge_list, split_ratio)
-    
-    'формирование статик графа и получение для него edge,node,adjacency_matrix'
+        
     build_static_graph = temporalG.get_static_graph(0, split_ratio, False)
 
     edge_feature_build_part = build_static_graph.get_edge_set()
