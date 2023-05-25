@@ -73,9 +73,9 @@ def temporal_weighting(edge: pd.DataFrame, t_min: int, t_max: int):
     '''
     Взвешивание во времени: расчет трех весов для каждого ребра по их временным меткам
     '''
-    edge['weight_linear'] = temporal_weighting_w_linear(edge['last_timestamp'],t_min,t_max)
-    edge['weight_exponential'] = temporal_weighting_w_exponential(edge['last_timestamp'],t_min,t_max)
-    edge['weight_square_root'] = temporal_weighting_w_square_root(edge['last_timestamp'],t_min,t_max)
+    edge['weight_linear'] = temporal_weighting_w_linear(edge['timestamp'],t_min,t_max)
+    edge['weight_exponential'] = temporal_weighting_w_exponential(edge['timestamp'],t_min,t_max)
+    edge['weight_square_root'] = temporal_weighting_w_square_root(edge['timestamp'],t_min,t_max)
 
 def replace_nan(df, columns, start_node_column, end_node_column):
     '''
@@ -204,11 +204,11 @@ def make_edges_weights_adjacent_to_node(edge: pd.DataFrame):
     Формирование датафрейма с весами примыкающих к вершине ребер.
     Строка соответствует определенной вершине.
     '''
-    grouped_by_start_node = edge.drop(['end_node',"number","last_timestamp"], 
+    grouped_by_start_node = edge.drop(['end_node',"number","timestamp"], 
                                       axis=1).groupby("start_node").agg(
     {'weight_linear': list, 'weight_exponential': list,
      'weight_square_root': list}).reset_index()
-    grouped_by_end_node = edge.drop(['start_node',"number","last_timestamp"], 
+    grouped_by_end_node = edge.drop(['start_node',"number","timestamp"], 
                                     axis=1).groupby("end_node").agg(
     {'weight_linear': list, 'weight_exponential': list,
      'weight_square_root': list}).reset_index()
@@ -404,7 +404,7 @@ edge = pd.DataFrame({
     'start_node': [0, 0],
     'end_node': [1, 2],
     'number': [100, 200],
-    'last_timestamp': [1634558000, 1634558100],
+    'timestamp': [1634558000, 1634558100],
     'weight_linear': [None, None],
     'weight_exponential': [None, None],
     'weight_square_root': [None, None]

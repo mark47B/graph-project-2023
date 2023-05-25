@@ -63,10 +63,10 @@ class TemporalGraph:
                 edge_number += 1
         self.timestamps.sort()
 
-    def get_static_graph(self, l: float, r: float) -> 'StaticGraph':
+    def get_static_graph(self, l: float, r: float, prediction: bool = False) -> 'StaticGraph':
         t_1 = self.timestamps[int(l * (len(self.timestamps) - 1))]
         t_2 = self.timestamps[int(r * (len(self.timestamps) - 1))]
-        sg = StaticGraph(t_1, t_2)
+        sg = StaticGraph(t_1, t_2, len(set([i[1].number for i in self.edge_list])), prediction)
         for x in self.edge_list:
             if t_1 <= x[0] <= t_2:
                 sg.add_edge(x[1])
@@ -83,16 +83,21 @@ class TemporalGraph:
 class StaticGraph:
     t_min: int
     t_max: int
+    prediction: bool = False
     node_set: pd.DataFrame = None
     edge_set: pd.DataFrame = None
     adjacency_matrix: pnd.NDArrayBool = None  # Матрица смежности
     largest_connected_component: Optional['StaticGraph'] = None
     number_of_connected_components: Optional[int] = None
     
-    def __init__(self, t_1: int = 0, t_2: int = 10000000000, size: int = 10000):
+    def __init__(self, t_1: int = 0, t_2: int = 10000000000, size: int = 10000, prediction=False):
         self.t_min = t_1
         self.t_max = t_2
-        self.adjacency_matrix = np.full((size, size), False, dtype=bool)
+        self.prediction = prediction
+        if not prediction:
+            self.adjacency_matrix = np.full((size, size), False, dtype=bool)
+        else:
+            self.adjacency_matrix = None
         self.largest_connected_component = None
         self.number_of_connected_components = None
 
@@ -136,7 +141,7 @@ class StaticGraph:
                 "number": pd.Series(dtype='int'),
                 "start_node": pd.Series(dtype='int'),
                 "end_node": pd.Series(dtype='int'),
-                "last_timestamp": pd.Series(dtype='int'),
+                "timestamp": pd.Series(dtype='int'),
                 "weight_linear": pd.Series(dtype='float'),
                 "weight_exponential": pd.Series(dtype='float'),
                 "weight_square_root": pd.Series(dtype='float'),
@@ -153,7 +158,7 @@ class StaticGraph:
         }
         return self.count_vertices() - 1
 
-    def add_edge(self, edge: Edge) -> int:
+    def add_edge_non_multiedge(self, edge: Edge) -> int:
         start_node_index: int = -1
         end_node_index: int = -1
         # если вершин не существует, добавим их, и сохраним их индексы
@@ -179,23 +184,75 @@ class StaticGraph:
             (self.get_edge_set()["end_node"] == end_node_index)).any(): # исправить таймстемп
             self.get_edge_set().loc[
                 (self.get_edge_set()["start_node"] == start_node_index) &
-                (self.get_edge_set()["end_node"] == end_node_index), "last_timestamp"] = edge.timestamp
+                (self.get_edge_set()["end_node"] == end_node_index), "timestamp"] = edge.timestamp
         else:
             # добавим ребро
             self.get_edge_set().loc[self.count_edges()] = {
                 "number": edge.number,
                 "start_node": start_node_index,
                 "end_node": end_node_index,
-                "last_timestamp": edge.timestamp,
+                "timestamp": edge.timestamp,
             }
             # увеличим степень вершин
             self.get_node_set().at[start_node_index, "node_degree"] += 1
             self.get_node_set().at[end_node_index, "node_degree"] += 1
+            
+            if not self.prediction: 
+                # обозначим, что вершины смежны
+                self.adjacency_matrix[start_node_index][end_node_index] = True
+                self.adjacency_matrix[end_node_index][start_node_index] = True
 
-            # обозначим, что вершины смежны
-            self.adjacency_matrix[start_node_index][end_node_index] = True
-            self.adjacency_matrix[end_node_index][start_node_index] = True
+        return self.count_edges() - 1
 
+
+    def add_edge(self, edge: Edge) -> int:
+        start_node_index: int = -1
+        end_node_index: int = -1
+        # если вершин не существует, добавим их, и сохраним их индексы
+        if self.get_node_set().loc[self.get_node_set()["number_in_temporal_graph"] == edge.start_node.number].empty:
+            start_node_index = self.add_node(edge.start_node)
+        else:
+            start_node_index = self.get_node_set().loc[
+                self.get_node_set()["number_in_temporal_graph"] == edge.start_node.number, 
+            "number"].to_list()[0]
+
+        if self.get_node_set().loc[self.get_node_set()["number_in_temporal_graph"] == edge.end_node.number].empty:
+            end_node_index = self.add_node(edge.end_node)
+        else:
+            end_node_index = self.get_node_set().loc[
+                self.get_node_set()["number_in_temporal_graph"] == edge.end_node.number, 
+            "number"].to_list()[0]
+
+        # свапнем вершины, если start_node_index > end_node_index
+        if start_node_index > end_node_index:
+            start_node_index, end_node_index = end_node_index, start_node_index
+
+        if not ((self.get_edge_set()["start_node"] == start_node_index) & 
+            (self.get_edge_set()["end_node"] == end_node_index)).any():  # если ребро пришло первый раз
+            # увеличим степень вершин
+            self.get_node_set().at[start_node_index, "node_degree"] += 1
+            self.get_node_set().at[end_node_index, "node_degree"] += 1
+
+            if not self.prediction:
+                # обозначим, что вершины смежны
+                self.adjacency_matrix[start_node_index][end_node_index] = True
+                self.adjacency_matrix[end_node_index][start_node_index] = True
+
+            # добавим ребро
+            self.get_edge_set().loc[self.count_edges()] = {
+                "number": edge.number,
+                "start_node": start_node_index,
+                "end_node": end_node_index,
+                "timestamp": edge.timestamp,
+            }
+        elif not ((self.get_edge_set()["number"] == edge.number)).any():  # проверка на полный дубликат
+            # добавим ребро
+            self.get_edge_set().loc[self.count_edges()] = {
+                "number": edge.number,
+                "start_node": start_node_index,
+                "end_node": end_node_index,
+                "timestamp": edge.timestamp,
+            }
         return self.count_edges() - 1
 
     def count_vertices(self) -> int:
@@ -236,13 +293,13 @@ class StaticGraph:
             edge_df = self.get_edge_set().loc[
                 (self.get_edge_set()["start_node"] == min(v, to)) & 
                 (self.get_edge_set()["end_node"] == max(v, to)), 
-            ["number", "last_timestamp"]]
+            ["number", "timestamp"]]
             for _, row in edge_df.iterrows():
                 new_edge = Edge(
                     number=row["number"], 
                     start_node=Node(number=v_number),
                     end_node=Node(number=to_number),
-                    timestamp=row["last_timestamp"])
+                    timestamp=row["timestamp"])
                 self.largest_connected_component.add_edge(new_edge)
 
     def __update_number_of_connected_components_and_largest_connected_component(self):
@@ -381,10 +438,7 @@ class StaticGraph:
                     if k == j or k == i or (not self.get_largest_connected_component().adjacency_matrix[i][k]):
                         continue
                     if self.get_largest_connected_component().adjacency_matrix[j][k]:
-                        l_u += (len(self.get_largest_connected_component().get_edge_set().loc[
-                            (self.get_largest_connected_component().get_edge_set()["start_node"] == min(j, k)) & 
-                            (self.get_largest_connected_component().get_edge_set()["end_node"] == max(j, k))
-                        ]) > 0)
+                        l_u += 1
 
             result += l_u / (i_degree * (i_degree - 1))
         return result / cnt_verts
@@ -459,13 +513,13 @@ class SelectApproach:
                 edge_df = graph.get_edge_set().loc[
                     (graph.get_edge_set()["start_node"] == min(v, i)) & 
                     (graph.get_edge_set()["end_node"] ==  max(v, i)),
-                ["number", "last_timestamp"]]
+                ["number", "timestamp"]]
                 for _, row in edge_df.iterrows():
                     new_edge = Edge(
                         number=row["number"], 
                         start_node=Node(number=v_number),
                         end_node=Node(number=i_number),
-                        timestamp=row["last_timestamp"]
+                        timestamp=row["timestamp"]
                     )
                     sample_graph.add_edge(new_edge)
         return sample_graph
@@ -494,13 +548,13 @@ class SelectApproach:
                     edge_df = graph.get_edge_set().loc[
                         (graph.get_edge_set()["start_node"] == min(vertice_index, new_vertice_index)) &  
                         (graph.get_edge_set()["end_node"] == max(vertice_index, new_vertice_index)),
-                    ["number", "last_timestamp"]]
+                    ["number", "timestamp"]]
                     for _, row in edge_df.iterrows():
                         new_edge = Edge(
                             number=row["number"], 
                             start_node=Node(number=new_vertice_number),
                             end_node=Node(number=vertice_number),
-                            timestamp=row["last_timestamp"])
+                            timestamp=row["timestamp"])
                         sample_graph.add_edge(new_edge)
 
         return sample_graph
