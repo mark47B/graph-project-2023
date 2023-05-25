@@ -1,3 +1,7 @@
+from .base import TemporalGraph
+from .fature_formation import feature_for_edges
+
+
 def train_test_split_temporal_graph(edge_list:list, split_ratio: float):
     '''
     Разделение выборки на части формирования признаков и на части предсказания
@@ -9,11 +13,14 @@ def train_test_split_temporal_graph(edge_list:list, split_ratio: float):
 
 
 
-def get_performance(edge_list:list, split_ratio: float, t_min:int, t_max:int):
+def get_performance(temporalG:TemporalGraph, split_ratio: float):
+    t_min = edge_list.get_min_timestamp()
+    t_max = edge_list.get_max_timestamp()
     
-    edge_list_feature_build_part, edge_list_prediction_part = train_test_split_temporal_graph(edge_list:list, split_ratio: float)
+    edge_list_feature_build_part, edge_list_prediction_part = train_test_split_temporal_graph(TemporalG.edge_list, split_ratio: float)
     
     'формирование статик графа и получение для него edge,node,adjacency_matrix'
+    staticG = TemporalG.get_static_graph()
     
     Edge_feature = feature_for_edges(edge_feature_build_part, node_feature_build_part, adjacency_matrix_feature_build_part, t_min, t_max)
     

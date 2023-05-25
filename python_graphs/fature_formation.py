@@ -441,10 +441,6 @@ node = pd.DataFrame({
     
 })
 
-adjacency_matrix = np.array([[1,1,1],[1,0,1],[1,1,1]])
+# Edge_feature = feature_for_edges(edge, node, adjacency_matrix, 0, 20000000000)
 
-Edge_feature = feature_for_edges(edge, node, adjacency_matrix, 0, 20000000000)
-
-Edge_feature = feature_for_absent_edges(edge, node, adjacency_matrix, 0, 20000000000)
-
-    
+# Edge_feature = feature_for_absent_edges(edge, node, adjacency_matrix, 0, 20000000000)
