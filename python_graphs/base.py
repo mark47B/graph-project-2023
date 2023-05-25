@@ -71,6 +71,12 @@ class TemporalGraph:
             if t_1 <= x[0] <= t_2:
                 sg.add_edge(x[1])
         return sg
+    
+    def get_max_timestamp(self):
+        return max(self.edge_list, key=lambda x: x[0])[0]
+    
+    def get_min_timestamp(self):
+        return min(self.edge_list, key=lambda x: x[0])[0]
 
 
 @dataclass
@@ -89,6 +95,7 @@ class StaticGraph:
         self.adjacency_matrix = np.full((size, size), False, dtype=bool)
         self.largest_connected_component = None
         self.number_of_connected_components = None
+
 
 
     def get_node_set(self) -> pd.DataFrame:
