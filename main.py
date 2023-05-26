@@ -2,10 +2,9 @@ import pandas as pd
 import python_graphs.visualization as vis
 
 Networks = ['email-Eu-core-temporal-Dept3','opsahl-ucsocial','radoslaw_email',
-            'soc-sign-bitcoinalpha','dnc-corecipient',
-            'sx-mathoverflow']
+            'soc-sign-bitcoinalpha','dnc-corecipient','sx-mathoverflow']
 networks_files_names = [ f'datasets/{i}/out.{i}' for i in Networks]
-number_of_datasets = 5
+number_of_datasets = 6
 datasets_info = {'Network': ['email-Eu-core-temporal', 'opsahl-ucsocial','radoslaw_email','soc-sign-bitcoinalpha',
                              'dnc-corecipient','sx-mathoverflow'],
 'Label': ['EU','UC','Rado','bitA','Dem ','SX-MO'],

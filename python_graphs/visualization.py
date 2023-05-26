@@ -21,27 +21,103 @@ def get_stats(network_info):
     print('Получили статистику графа')
     # ск - снежный ком
     # свв - случайный выбор вершин
-    return {
-        'Сеть': network_info['Label'],
-        'Категория': network_info['Category'],
-        'Вершины': staticGraph.count_vertices(),
-        'Тип ребер': network_info['Edge type'],
-        'Ребра':staticGraph.count_edges(),
-        'Плотность графа':staticGraph.density(),
-        'Доля вершин':staticGraph.share_of_vertices(),
-        'Компоненты с/с':staticGraph.get_number_of_connected_components(),
-        'Вершины в наибольшей компоненте с/с':staticGraph.get_largest_connected_component().count_vertices(),
-        'Ребра в наибольшей компоненте с/с':staticGraph.get_largest_connected_component().count_edges(),
-        'Радиус графа(ск)': staticGraph.get_radius(sg_sb),
-        'Диаметр графа(ск)': staticGraph.get_diameter(sg_sb),
-        '90 проц. расстояния(ск)': staticGraph.percentile_distance(sg_sb),
-        'Радиус графа(свв)': staticGraph.get_radius(sg_rsv),
-        'Диаметр графа(свв)': staticGraph.get_diameter(sg_rsv),
-        '90 проц.расстояния(свв)': staticGraph.percentile_distance(sg_rsv),
-        'Коэф.ассортативности': staticGraph.assortative_factor(),
-        'Сред.класт.коэф.сети': staticGraph.average_cluster_factor(),
-        'AUC': mdtr.get_performance(tmpGraph, 0.67),
-    }
+    result = {}
+    try:
+        result['Сеть'] = network_info['Label']
+    except KeyError:
+        result['Сеть'] = None
+
+    try:
+        result['Категория'] = network_info['Category']
+    except KeyError:
+        result['Категория'] = None
+
+    try:
+        result['Вершины'] = staticGraph.count_vertices()
+    except Exception:
+        result['Вершины'] = None
+
+    try:
+        result['Тип ребер'] = network_info['Edge type']
+    except KeyError:
+        result['Тип ребер'] = None
+
+    try:
+        result['Ребра'] = staticGraph.count_edges()
+    except Exception:
+        result['Ребра'] = None
+
+    try:
+        result['Плот.'] = staticGraph.density()
+    except Exception:
+        result['Плот.'] = None
+
+    try:
+        result['Доля вершин'] = staticGraph.share_of_vertices()
+    except Exception:
+        result['Доля вершин'] = None
+
+    try:
+        result['КСС'] = staticGraph.get_number_of_connected_components()
+    except Exception:
+        result['КСС'] = None
+
+    try:
+        result['Вершины в наиб.КСС'] = staticGraph.get_largest_connected_component().count_vertices()
+    except Exception:
+        result['Вершины в наиб.КСС'] = None
+
+    try:
+        result['Ребра в наиб.КСС'] = staticGraph.get_largest_connected_component().count_edges()
+    except Exception:
+        result['Ребра в наиб.КСС'] = None
+
+    try:
+        result['Радиус(ск)'] = staticGraph.get_radius(sg_sb)
+    except Exception:
+        result['Радиус(ск)'] = None
+
+    try:
+        result['Диаметр(ск)'] = staticGraph.get_diameter(sg_sb)
+    except Exception:
+        result['Диаметр(ск)'] = None
+
+    try:
+        result['90проц.расст.(ск)'] = staticGraph.percentile_distance(sg_sb)
+    except Exception:
+        result['90проц.расст.(ск)'] = None
+
+    try:
+        result['Радиус(свв)'] = staticGraph.get_radius(sg_rsv)
+    except Exception:
+        result['Радиус(свв)'] = None
+
+    try:
+        result['Диаметр(свв)'] = staticGraph.get_diameter(sg_rsv)
+    except Exception:
+        result['Диаметр(свв)'] = None
+
+    try:
+        result['90проц.расст.(свв)'] = staticGraph.percentile_distance(sg_rsv)
+    except Exception:
+        result['90проц.расст.(свв)'] = None
+
+    try:
+        result['Коэф.ассорт.'] = staticGraph.assortative_factor()
+    except Exception:
+        result['Коэф.ассорт.'] = None
+
+    try:
+        result['Ср.кл.коэф.'] = staticGraph.average_cluster_factor()
+    except Exception:
+        result['Ср.кл.коэф.'] = None
+
+    try:
+        result['AUC'] = mdtr.get_performance(tmpGraph, 0.67)
+    except Exception:
+        result['AUC'] = None
+
+    return result
 
 
 def graph_features_tables(datasets_info: pd.DataFrame):
