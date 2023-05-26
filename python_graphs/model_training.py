@@ -32,9 +32,9 @@ def get_performance(temporalG: TemporalGraph, split_ratio: float):
     gc.collect()
     Edge_feature = feature_for_absent_edges(edge_feature_build_part, node_feature_build_part, build_static_graph.adjacency_matrix, t_min, t_max)
     print('Получили признаки')
-    del edge_feature_build_part
-    del node_feature_build_part
-    gc.collect()
+    # del edge_feature_build_part
+    # del node_feature_build_part
+    # gc.collect()
 
     node_prediction_part = prediction_static_graph.get_node_set()
     edge_prediction_part = prediction_static_graph.get_edge_set()
@@ -68,6 +68,9 @@ def get_performance(temporalG: TemporalGraph, split_ratio: float):
     X = Edge_feature.drop(['number','start_node','end_node','number_in_temporal_graph_start_node','number_in_temporal_graph_end_node'], axis=1)
     
     y = Edge_feature['number']
+
+    del Edge_feature
+    gc.collect()
     
     X_train, X_test, y_train, y_test = (
         model_selection.train_test_split(X, y, random_state=42))

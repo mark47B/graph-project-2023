@@ -12,6 +12,7 @@
 import numpy as np
 import pandas as pd
 import pydantic_numpy.dtype as pnd
+import gc
 
 
 def node_degree(numbers_of_nodes:np.array, adjacency_matrix: pnd.NDArrayBool):
@@ -239,15 +240,27 @@ def make_edges_weights_adjacent_to_node(edge: pd.DataFrame):
     
     return edges_weights_for_node
 
+# def split_list_cell(df: pd.DataFrame, column_name: str):
+#     '''
+#     Разбиение списка на отдельные столбцы с автоматической генерацией имен
+#     '''
+#     new_columns = [str(i) for i in range(len(df[column_name].iloc[0]))]  # Генерация имен столбцов
+#
+#     return pd.concat([df.drop(column_name, axis=1),
+#                       df[column_name].apply(lambda x: pd.Series(x, index=new_columns))],
+#                      axis=1)
+
 def split_list_cell(df: pd.DataFrame, column_name: str):
     '''
     Разбиение списка на отдельные столбцы с автоматической генерацией имен
     '''
     new_columns = [str(i) for i in range(len(df[column_name].iloc[0]))]  # Генерация имен столбцов
 
-    return pd.concat([df.drop(column_name, axis=1),
-                      df[column_name].apply(lambda x: pd.Series(x, index=new_columns))],
-                     axis=1)
+    df[new_columns] = df[column_name].apply(pd.Series)
+
+    return df.drop(column_name, axis=1)
+
+
 
 def merge_with_temporal_graph_number(df: pd.DataFrame,node: pd.DataFrame):
     '''
@@ -384,9 +397,17 @@ def feature_for_absent_edges(edge: pd.DataFrame, node: pd.DataFrame, adjacency_m
     
     Edge_feature,feature_column_name = combining_node_activity_for_absent_edge(node,edge)
 
+    del edge
+
     Edge_feature = merge_with_temporal_graph_number(Edge_feature, node)
-    
+
+    del node
+
     count_static_topological_features(Edge_feature, adjacency_matrix)
+
+    del adjacency_matrix
+
+    gc.collect()
             
     Edge_feature = split_list_cell(Edge_feature, feature_column_name)
 
