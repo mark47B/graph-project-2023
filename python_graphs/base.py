@@ -53,7 +53,7 @@ class TemporalGraph:
                                         number=edge_number,
                                         start_node=Node(number=int(item[0])-1),
                                         end_node=Node(number=int(item[1])-1),
-                                        timestamp=int(item[2]),
+                                        timestamp=int(item[-1]),
                                         )
                                     )
                 edge_number += 1

@@ -74,7 +74,7 @@ def get_performance(temporalG: TemporalGraph, split_ratio: float):
     
     pipe = pipeline.make_pipeline(
             preprocessing.StandardScaler(),
-            linear_model.LogisticRegression(max_iter=1000, n_jobs=-1,
+            linear_model.LogisticRegression(max_iter=10000, n_jobs=-1,
                                                     random_state=42)
         )
 
