@@ -36,7 +36,7 @@ class Edge(BaseModel):
 class TemporalGraph:
     edge_list: list[Edge]
 
-    def __init__(self, path: str = './datasets/radoslaw_email/out.radoslaw_email_email'):
+    def __init__(self, path: str = './datasets/radoslaw_email/out.radoslaw_email'):
         self.edge_list = list()
         with open(path) as raw_data:
             raw_data.readline()
@@ -61,16 +61,15 @@ class TemporalGraph:
 
 
     def get_static_graph(self, l: float, r: float, prediction: bool = False) -> 'StaticGraph':
-        t_1 = self.edge_list[int(l * (len(self.edge_list) - 1))].timestamp
-        t_2 = self.edge_list[int(r * (len(self.edge_list) - 1))].timestamp
+        left_index = int(l * len(self.edge_list))
+        right_index = int(r * len(self.edge_list))
         st = set()
-        for i in self.edge_list:
-            st.add(i.start_node.number)
-            st.add(i.end_node.number)
-        sg = StaticGraph(t_1, t_2, len(st), prediction)
-        for x in self.edge_list:
-            if t_1 <= x.timestamp <= t_2:
-                sg.add_edge(x)
+        for i in range(left_index, right_index):
+            st.add(self.edge_list[i].start_node.number)
+            st.add(self.edge_list[i].end_node.number)
+        sg = StaticGraph(len(st), prediction)
+        for i in range(left_index, right_index):
+            sg.add_edge(self.edge_list[i])
         return sg
     
     def get_max_timestamp(self):
@@ -82,8 +81,6 @@ class TemporalGraph:
 
 @dataclass
 class StaticGraph:
-    t_min: int
-    t_max: int
     prediction: bool = False
     node_set: pd.DataFrame = None
     edge_set: pd.DataFrame = None
@@ -91,9 +88,7 @@ class StaticGraph:
     largest_connected_component: Optional['StaticGraph'] = None
     number_of_connected_components: Optional[int] = None
     
-    def __init__(self, t_1: int = 0, t_2: int = 10000000000, size: int = 10000, prediction=False):
-        self.t_min = t_1
-        self.t_max = t_2
+    def __init__(self, size: int = 10000, prediction=False):
         self.prediction = prediction
         if not prediction:
             self.adjacency_matrix = np.full((size, size), False, dtype=bool)
@@ -262,45 +257,60 @@ class StaticGraph:
 
     def density(self) -> float:
         cnt_vert: int = self.count_vertices()
-        print('Посчитали полотность')
         return 2 * self.count_edges() / (cnt_vert * (cnt_vert - 1))
 
 
-    def __find_size_of_connected_component(self, used, v) -> int:
-        used[v] = True
-        sz = 1
+    def __find_size_of_connected_component(self, used, start_vertice) -> int:
         cnt_vert = self.count_vertices()
-        for to in range(cnt_vert):
-            if not self.adjacency_matrix[v][to]:
-                continue
-            if not used[to]:
-                sz += self.__find_size_of_connected_component(used, to)
-        return sz
-    
-    def __find_largest_connected_component(self, used, v):
-        # Обойдём всю компоненту слабой связности и запишем её как отдельный граф
-        used[v] = True
-        cnt_vert = self.count_vertices()
-        for to in range(cnt_vert):
-            if not self.adjacency_matrix[v][to]:
-                continue
-            if not used[to]:
-                self.__find_largest_connected_component(used, to)
-            
-            v_number = self.get_node_set().at[v, "number_in_temporal_graph"]
-            to_number = self.get_node_set().at[to, "number_in_temporal_graph"]
+        queue = list()
+        used[start_vertice] = True
+        queue.append(start_vertice)
 
-            edge_df = self.get_edge_set().loc[
-                (self.get_edge_set()["start_node"] == min(v, to)) & 
-                (self.get_edge_set()["end_node"] == max(v, to)), 
-            ["number", "timestamp"]]
-            for _, row in edge_df.iterrows():
-                new_edge = Edge(
-                    number=row["number"], 
-                    start_node=Node(number=v_number),
-                    end_node=Node(number=to_number),
-                    timestamp=row["timestamp"])
-                self.largest_connected_component.add_edge(new_edge)
+        size = 0
+
+        while len(queue) > 0:
+            v = queue.pop(0)
+            size += 1
+            for to in range(cnt_vert):
+                if not self.adjacency_matrix[v][to]:
+                    continue
+                if not used[to]:
+                    used[to] = True
+                    queue.append(to)
+        
+        return size
+    
+    def __find_largest_connected_component(self, used, start_vertice):
+        # Обойдём всю компоненту слабой связности и запишем её как отдельный граф
+        cnt_vert = self.count_vertices()
+        queue = list()
+        used[start_vertice] = True
+        queue.append(start_vertice)
+
+        while len(queue) > 0:
+            v = queue.pop(0)
+            for to in range(cnt_vert):
+                if not self.adjacency_matrix[v][to]:
+                    continue
+                if not used[to]:
+                    used[to] = True
+                    queue.append(to)
+
+                v_number = self.get_node_set().at[v, "number_in_temporal_graph"]
+                to_number = self.get_node_set().at[to, "number_in_temporal_graph"]
+
+                edge_df = self.get_edge_set().loc[
+                    (self.get_edge_set()["start_node"] == min(v, to)) & 
+                    (self.get_edge_set()["end_node"] == max(v, to)), 
+                ["number", "timestamp"]]
+                for _, row in edge_df.iterrows():
+                    new_edge = Edge(
+                        number=row["number"], 
+                        start_node=Node(number=v_number),
+                        end_node=Node(number=to_number),
+                        timestamp=row["timestamp"])
+                    self.largest_connected_component.add_edge(new_edge)
+
 
     def __update_number_of_connected_components_and_largest_connected_component(self):
         # Запустим DFS от каждой ещё не посещённой вершины, получая компоненты слабой связности
@@ -323,7 +333,7 @@ class StaticGraph:
         used = [False for _ in range(cnt_vert)]
 
         # Нашли максимальную по мощности компоненту слабой связности, запишем её в поле
-        self.largest_connected_component = StaticGraph(self.t_min, self.t_max, cnt_vert)
+        self.largest_connected_component = StaticGraph(max_component_size)
         self.__find_largest_connected_component(used, vertice)
 
     def get_largest_connected_component(self) -> 'StaticGraph':
@@ -337,7 +347,7 @@ class StaticGraph:
         # если число компонент слабой связности не нашли, найдём
         if self.largest_connected_component is None:
             self.__update_number_of_connected_components_and_largest_connected_component()
-        print('Получили число компонент связности')
+
         return self.number_of_connected_components
 
     def share_of_vertices(self) -> float: 
@@ -489,7 +499,7 @@ class SelectApproach:
 
         size = min(500, cnt_verts)
 
-        sample_graph = StaticGraph(graph.t_min, graph.t_max, size)  # новый граф, который должны получить в результате
+        sample_graph = StaticGraph(size)  # новый граф, который должны получить в результате
 
         used = [False for _ in range(cnt_verts)]
         used[start_node_index1] = True
@@ -529,7 +539,7 @@ class SelectApproach:
     def random_selected_vertices(self, graph: StaticGraph) -> StaticGraph:
         remaining_vertices = [int(i) for i in range(graph.count_vertices())]  # множество оставшихся вершин
         size = min(500, graph.count_vertices())
-        sample_graph = StaticGraph(graph.t_min, graph.t_max, size)  # новый граф, который должны получить в результате
+        sample_graph = StaticGraph(size)  # новый граф, который должны получить в результате
 
         for _ in range(size):
             # выберем новую вершину для добавления в граф
