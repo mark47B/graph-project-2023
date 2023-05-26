@@ -10,57 +10,36 @@ def get_stats(network_info):
     
     tmpGraph = graphs.TemporalGraph(network_info['Path'])
     print('загрузили граф')
-    staticGraph = tmpGraph.get_static_graph(0.2, 0.6)
+    staticGraph = tmpGraph.get_static_graph(0., 1.)
     print('создали статичный')
-    #snowball_sample_approach = graphs.SelectApproach(0, 5)
-    #random_selected_vertices_approach = graphs.SelectApproach()
+    snowball_sample_approach = graphs.SelectApproach(0, 5)
+    random_selected_vertices_approach = graphs.SelectApproach()
     print('snowball START')
-    #sg_sb = snowball_sample_approach(staticGraph.get_largest_connected_component())
+    sg_sb = snowball_sample_approach(staticGraph.get_largest_connected_component())
     print('random select START')
-    #sg_rsv = random_selected_vertices_approach(staticGraph.get_largest_connected_component())
+    sg_rsv = random_selected_vertices_approach(staticGraph.get_largest_connected_component())
     print('Получили статистику графа')
     # ск - снежный ком
     # свв - случайный выбор вершин
-    # return {
-    #     'Сеть': network_info['Label'],
-    #     'Категория': network_info['Category'],
-    #     'Вершины': staticGraph.count_vertices(),
-    #     'Тип ребер': network_info['Edge type'],
-    #     'Ребра':staticGraph.count_edges(),
-    #     'Плотность графа':staticGraph.density(),
-    #     'Доля вершин':staticGraph.share_of_vertices(),
-    #     'Компоненты с/с':staticGraph.get_number_of_connected_components(),
-    #     'Вершины в наибольшей компоненте с/с':staticGraph.get_largest_connected_component().count_vertices(),
-    #     'Ребра в наибольшей компоненте с/с':staticGraph.get_largest_connected_component().count_edges(),
-    #     'Радиус графа(ск)': staticGraph.get_radius(sg_sb),
-    #     'Диаметр графа(ск)': staticGraph.get_diameter(sg_sb),
-    #     '90 проц. расстояния(ск)': staticGraph.percentile_distance(sg_sb),
-    #     'Радиус графа(свв)': staticGraph.get_radius(sg_rsv),
-    #     'Диаметр графа(свв)': staticGraph.get_diameter(sg_rsv),
-    #     '90 проц.расстояния(свв)': staticGraph.percentile_distance(sg_rsv),
-    #     'Коэф.ассортативности': staticGraph.assortative_factor(),
-    #     'Сред.класт.коэф.сети': staticGraph.average_cluster_factor(),
-    #     'AUC': mdtr.get_performance(tmpGraph, 0.67),
-    # }
     return {
         'Сеть': network_info['Label'],
         'Категория': network_info['Category'],
-        'Вершины': 0,
+        'Вершины': staticGraph.count_vertices(),
         'Тип ребер': network_info['Edge type'],
-        'Ребра': 0,
-        'Плотность графа': 0,
-        'Доля вершин': 0,
-        'Компоненты с/с': 0,
-        'Вершины в наибольшей компоненте с/с': 0,
-        'Ребра в наибольшей компоненте с/с': 0,
-        'Радиус графа(ск)': 0,
-        'Диаметр графа(ск)': 0,
-        '90 проц. расстояния(ск)': 0,
-        'Радиус графа(свв)': 0,
-        'Диаметр графа(свв)': 0,
-        '90 проц.расстояния(свв)': 0,
-        'Коэф.ассортативности': 0,
-        'Сред.класт.коэф.сети': 0,
+        'Ребра':staticGraph.count_edges(),
+        'Плотность графа':staticGraph.density(),
+        'Доля вершин':staticGraph.share_of_vertices(),
+        'Компоненты с/с':staticGraph.get_number_of_connected_components(),
+        'Вершины в наибольшей компоненте с/с':staticGraph.get_largest_connected_component().count_vertices(),
+        'Ребра в наибольшей компоненте с/с':staticGraph.get_largest_connected_component().count_edges(),
+        'Радиус графа(ск)': staticGraph.get_radius(sg_sb),
+        'Диаметр графа(ск)': staticGraph.get_diameter(sg_sb),
+        '90 проц. расстояния(ск)': staticGraph.percentile_distance(sg_sb),
+        'Радиус графа(свв)': staticGraph.get_radius(sg_rsv),
+        'Диаметр графа(свв)': staticGraph.get_diameter(sg_rsv),
+        '90 проц.расстояния(свв)': staticGraph.percentile_distance(sg_rsv),
+        'Коэф.ассортативности': staticGraph.assortative_factor(),
+        'Сред.класт.коэф.сети': staticGraph.average_cluster_factor(),
         'AUC': mdtr.get_performance(tmpGraph, 0.67),
     }
 

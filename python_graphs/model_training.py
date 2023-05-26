@@ -27,15 +27,15 @@ def get_performance(temporalG: TemporalGraph, split_ratio: float):
     node_feature_build_part = build_static_graph.get_node_set()
 
     prediction_static_graph = temporalG.get_static_graph(split_ratio, 1, True)
-    print('Начало feature_for_absent_edges')
+    print('Начало вычисления признаков')
     del temporalG
     gc.collect()
     Edge_feature = feature_for_absent_edges(edge_feature_build_part, node_feature_build_part, build_static_graph.adjacency_matrix, t_min, t_max)
-
+    print('Получили признаки')
     del edge_feature_build_part
     del node_feature_build_part
     gc.collect()
-    print('Получили признаки')
+
     node_prediction_part = prediction_static_graph.get_node_set()
     edge_prediction_part = prediction_static_graph.get_edge_set()
 
@@ -52,9 +52,7 @@ def get_performance(temporalG: TemporalGraph, split_ratio: float):
     
     edge_prediction_part = edge_prediction_part.rename(columns={'number_in_temporal_graph': 'number_in_temporal_graph_end_node'})
 
-    
-    
-    
+
     Edge_feature = Edge_feature.merge(
         edge_prediction_part[['number_in_temporal_graph_start_node','number_in_temporal_graph_end_node','number']],
         left_on=['number_in_temporal_graph_start_node','number_in_temporal_graph_end_node'], 
@@ -66,8 +64,6 @@ def get_performance(temporalG: TemporalGraph, split_ratio: float):
     gc.collect()
     
     Edge_feature['number'] = Edge_feature['number'].apply(lambda x: 0 if np.isnan(x) else 1)
-
-    print(Edge_feature.head())
 
     X = Edge_feature.drop(['number','start_node','end_node','number_in_temporal_graph_start_node','number_in_temporal_graph_end_node'], axis=1)
     
@@ -82,13 +78,11 @@ def get_performance(temporalG: TemporalGraph, split_ratio: float):
                                                     random_state=42)
         )
 
-    print(X_train.info())
-    print(y_train.info())
+
     print('Начало fit-a')
     pipe.fit(X_train, y_train)
     print('Конец fit-a')
 
-    
     auc = metrics.roc_auc_score(
         y_true=y_test, y_score=pipe.predict_proba(X_test)[:,1])
     
