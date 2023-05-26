@@ -48,47 +48,51 @@ def graph_features_tables(datasets_info: pd.DataFrame):
 
     table = pd.DataFrame([get_stats(network_info) for index, network_info in datasets_info.iterrows()]).sort_values('Вершины')
     print(table)
-    columns_to_include_to_feature_network_table = [
+
+    columns_to_include_to_feature_network_table_1 = [
         'Сеть',
         'Категория',
         'Вершины', 
         'Тип ребер',
         'Ребра',
-        'Плотность графа',
+        'Плот.',
         'Доля вершин',
-        'Компоненты с/с',
-        'Вершины в наибольшей компоненте с/с',
-        'Ребра в наибольшей компоненте с/с',
-        'Радиус графа(ск)',
-        'Диаметр графа(ск)',
-        '90 проц. расстояния(ск)',
-        'Радиус графа(свв)',
-        'Диаметр графа(свв)',
-        '90 проц.расстояния(свв)',
-        'Коэф.ассортативности',
-        'Сред.класт.коэф.сети',
+
     ]
+    columns_to_include_to_feature_network_table_2 = [
+        'Сеть',
+        'КСС',
+        'Вершины в наиб.КСС',
+        'Ребра в наиб.КСС',
+
+    ]
+    columns_to_include_to_feature_network_table_3 = [
+        'Сеть',
+        'Радиус(ск)',
+        'Диаметр(ск)',
+        '90проц.расст.(ск)',
+        'Радиус(свв)',
+        'Диаметр(свв)',
+        '90проц.расстояния(свв)',
+
+    ]
+    columns_to_include_to_feature_network_table_4 = [
+        'Сеть',
+        'Коэф.ассорт.',
+        'Ср.кл.коэф.',
+    ]
+
     columns_to_include_to_auc_table = [
         'Сеть',
         'AUC',
     ]
-    latex_feature_network_table = table.to_latex(
+    latex_feature_network_table_1 = table.to_latex(
         formatters={
             'Вершины': lambda x: f'{x:,}', 
             'Ребра': lambda x: f'{x:,}',
-            'Плотность графа': lambda x: f'{x:.5f}',
-            'Доля вершин': lambda x: f'{x:.4f}',
-            'Компоненты с/с': lambda x: f'{x:,}',
-            'Вершины в наибольшей компоненте с/с': lambda x: f'{x:,}',
-            'Ребра в наибольшей компоненте с/с': lambda x: f'{x:,}',
-            'Радиус графа(ск)': lambda x: f'{x:.2f}',
-            'Диаметр графа(ск)': lambda x: f'{x:.2f}',
-            '90 проц. расстояния(ск)': lambda x: f'{x:.2f}',
-            'Радиус графа(свв)': lambda x: f'{x:.2f}',
-            'Диаметр графа(свв)': lambda x: f'{x:.2f}',
-            '90 проц.расстояния(свв)': lambda x: f'{x:.2f}',
-            'Коэф.ассортативности': lambda x: f'{x:.2f}',
-            'Сред.класт.коэф.сети': lambda x: f'{x:.2f}',
+            'Плот.': lambda x: f'{x:.6f}',
+            'Доля вершин': lambda x: f'{x:.6f}',
+
         },
         column_format='l@{\hspace{1em}}c@{\hspace{1em}}c@{\hspace{0.5em}}r@{\hspace{1em}}r@{\hspace{1em}}c@{\hspace{1em}}c@{\hspace{1em}}c@{\hspace{1em}}c@{\hspace{0.5em}}c',
         index=False,
@@ -98,7 +102,62 @@ def graph_features_tables(datasets_info: pd.DataFrame):
         label='Таблица: Признаки сетей',
         escape=False,
         multicolumn=False,
-        columns=columns_to_include_to_feature_network_table
+        columns=columns_to_include_to_feature_network_table_1
+    )
+    latex_feature_network_table_2 = table.to_latex(
+        formatters={
+
+            'КСС': lambda x: f'{x:,}',
+            'Вершины в наиб.КСС': lambda x: f'{x:,}',
+            'Ребра в наиб.КСС': lambda x: f'{x:,}',
+
+        },
+        column_format='l@{\hspace{1em}}c@{\hspace{1em}}c@{\hspace{0.5em}}r@{\hspace{1em}}r@{\hspace{1em}}c@{\hspace{1em}}c@{\hspace{1em}}c@{\hspace{1em}}c@{\hspace{0.5em}}c',
+        index=False,
+        caption=(
+            "Признаки для сетей, рассмотренных в ходе работы "
+        ),
+        label='Таблица: Признаки сетей',
+        escape=False,
+        multicolumn=False,
+        columns=columns_to_include_to_feature_network_table_2
+    )
+    latex_feature_network_table_3 = table.to_latex(
+        formatters={
+
+            'Радиус(ск)': lambda x: f'{x:.2f}',
+            'Диаметр(ск)': lambda x: f'{x:.2f}',
+            '90проц.расст.(ск)': lambda x: f'{x:.2f}',
+            'Радиус(свв)': lambda x: f'{x:.2f}',
+            'Диаметр(свв)': lambda x: f'{x:.2f}',
+            '90проц.расст.(свв)': lambda x: f'{x:.2f}',
+
+        },
+        column_format='l@{\hspace{1em}}c@{\hspace{1em}}c@{\hspace{0.5em}}r@{\hspace{1em}}r@{\hspace{1em}}c@{\hspace{1em}}c@{\hspace{1em}}c@{\hspace{1em}}c@{\hspace{0.5em}}c',
+        index=False,
+        caption=(
+            "Признаки для сетей, рассмотренных в ходе работы "
+        ),
+        label='Таблица: Признаки сетей',
+        escape=False,
+        multicolumn=False,
+        columns=columns_to_include_to_feature_network_table_3
+    )
+    latex_feature_network_table_4 = table.to_latex(
+        formatters={
+
+            'Коэф.ассорт.': lambda x: f'{x:.2f}',
+            'Ср.кл.коэф.': lambda x: f'{x:.2f}',
+        },
+        column_format='l@{\hspace{1em}}c@{\hspace{1em}}c@{\hspace{0.5em}}r@{\hspace{1em}}r@{\hspace{1em}}c@{\hspace{1em}}c@{\hspace{1em}}c@{\hspace{1em}}c@{\hspace{0.5em}}c',
+        index=False,
+        caption=(
+            "Признаки для сетей, рассмотренных в ходе работы"
+        ),
+        label='Таблица: Признаки сетей',
+        escape=False,
+        multicolumn=False,
+        columns=columns_to_include_to_feature_network_table_4
     )
     latex_auc_table = table.to_latex(
         formatters={
@@ -114,4 +173,4 @@ def graph_features_tables(datasets_info: pd.DataFrame):
         multicolumn=False,
         columns=columns_to_include_to_auc_table
     )
-    return (latex_feature_network_table,latex_auc_table)
+    return (latex_feature_network_table_1,latex_feature_network_table_2,latex_feature_network_table_3,latex_feature_network_table_4,latex_auc_table)
