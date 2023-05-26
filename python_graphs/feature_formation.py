@@ -18,17 +18,17 @@ def node_degree(numbers_of_nodes:np.array, adjacency_matrix: pnd.NDArrayBool):
     return np.sum(adjacency_matrix[numbers_of_nodes,:].astype(int),axis=1)
 
 def common_neighbours(u:int, v:int, adjacency_matrix: pnd.NDArrayBool) -> int:
-    return np.sum(np.where(adjacency_matrix[u,:].astype(int) - adjacency_matrix[v,:].astype(int) == 0, 1, 0))
+    return np.sum(np.where(adjacency_matrix[u,:].astype(int) + adjacency_matrix[v,:].astype(int) == 2, 1, 0))
 
 def adamic_adar(u:int, v:int, adjacency_matrix: pnd.NDArrayBool) -> float:
-    return np.sum(1/np.log(node_degree(np.nonzero(adjacency_matrix[u,:].astype(int) - adjacency_matrix[v,:].astype(int)==0),adjacency_matrix.astype(int))))
+    return np.sum(1/np.log(node_degree(np.nonzero((adjacency_matrix[u,:].astype(int) + adjacency_matrix[v,:].astype(int))==2)[0],adjacency_matrix)))
 
 def jaccard_coefficient(u:int, v:int, adjacency_matrix:pnd.NDArrayBool) -> float:
-    return np.sum(np.where(adjacency_matrix[u,:].astype(int) - adjacency_matrix[v,:].astype(int) == 0, 1, 0))/np.sum(
+    return np.sum(np.where(adjacency_matrix[u,:].astype(int) + adjacency_matrix[v,:].astype(int) == 2, 1, 0))/np.sum(
         np.where(adjacency_matrix[u,:].astype(int) + adjacency_matrix[v,:].astype(int) != 0, 1, 0))
 
 def preferential_attachment(u:int, v:int, adjacency_matrix: pnd.NDArrayBool) -> int:
-    return np.prod(node_degree(np.array([u,v]), adjacency_matrix.astype(int)))
+    return np.prod(node_degree(np.array([u,v]), adjacency_matrix))
 
 # 3 функции для вычисления весов
 
@@ -235,13 +235,22 @@ def make_edges_weights_adjacent_to_node(edge: pd.DataFrame):
     
     return edges_weights_for_node
 
-def split_list_cell(df: pd.DataFrame, column_name:str):
+# def split_list_cell(df: pd.DataFrame, column_name:str):
+#     '''
+#     Разбиение списка на отдельные столбцы с автоматической генерацией имен
+#     '''
+#     return pd.concat([df.drop(column_name, axis=1),
+#                 df[column_name].apply(lambda x: pd.Series(x))],
+#                axis=1)
+def split_list_cell(df: pd.DataFrame, column_name: str):
     '''
     Разбиение списка на отдельные столбцы с автоматической генерацией имен
     '''
+    new_columns = [str(i) for i in range(len(df[column_name].iloc[0]))]  # Генерация имен столбцов
+
     return pd.concat([df.drop(column_name, axis=1),
-                df[column_name].apply(lambda x: pd.Series(x))],
-               axis=1)
+                      df[column_name].apply(lambda x: pd.Series(x, index=new_columns))],
+                     axis=1)
 
 def merge_with_temporal_graph_number(df: pd.DataFrame,node: pd.DataFrame):
     '''
@@ -263,11 +272,14 @@ def count_static_topological_features(df: pd.DataFrame, adjacency_matrix: pnd.ND
     '''
     Рассчет статичных топологических признаков
     '''
-    df["common_neighbours"] = df.apply(lambda row: common_neighbours(row["start_node"],row["end_node"],adjacency_matrix), axis=1)
+    #df["common_neighbours"] = df.apply(lambda row: common_neighbours(row["start_node"],row["end_node"],adjacency_matrix), axis=1)
     df["adamic_adar"] = df.apply(lambda row: adamic_adar(row["start_node"],row["end_node"],adjacency_matrix), axis=1)
-    df["jaccard_coefficient"] = df.apply(lambda row: jaccard_coefficient(row["start_node"],row["end_node"],adjacency_matrix), axis=1)
-    df["preferential_attachment"] = df.apply(lambda row: preferential_attachment(row["start_node"],row["end_node"],adjacency_matrix), axis=1)
 
+    print('адамик-адар')
+    #df["jaccard_coefficient"] = df.apply(lambda row: jaccard_coefficient(row["start_node"],row["end_node"],adjacency_matrix), axis=1)
+    print('джакард')
+    #df["preferential_attachment"] = df.apply(lambda row: preferential_attachment(row["start_node"],row["end_node"],adjacency_matrix), axis=1)
+    print('аттачмент')
 
 def feature_for_edges(edge: pd.DataFrame, node: pd.DataFrame, adjacency_matrix: pnd.NDArrayBool, t_min:int, t_max:int):
     '''
@@ -288,10 +300,9 @@ def feature_for_edges(edge: pd.DataFrame, node: pd.DataFrame, adjacency_matrix: 
     Edge_feature = split_list_cell(Edge_feature, feature_column_name)
 
     return Edge_feature
-# Example:
-#       Edge_feature = feature_for_edges(edge, node, adjacency_matrix, 0, 20000000000)
 
-def combining_node_activity_for_absent_edge(node: pd.DataFrame, edge: pd.DataFrame)->pd.DataFrame:
+
+def combining_node_activity_for_absent_edge(node: pd.DataFrame, edge: pd.DataFrame):
     
     '''
     Объединение активности узлов для формирования векторного описания
