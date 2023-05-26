@@ -18,10 +18,10 @@ def node_degree(numbers_of_nodes:np.array, adjacency_matrix: pnd.NDArrayBool):
     return np.sum(adjacency_matrix[numbers_of_nodes,:].astype(int),axis=1)
 
 def common_neighbours(u:int, v:int, adjacency_matrix: pnd.NDArrayBool) -> int:
-    return np.sum(np.where(adjacency_matrix[u,:].astype(int) + adjacency_matrix[v,:].astype(int) != 0, 1, 0))
+    return np.sum(np.where(adjacency_matrix[u,:].astype(int) - adjacency_matrix[v,:].astype(int) == 0, 1, 0))
 
 def adamic_adar(u:int, v:int, adjacency_matrix: pnd.NDArrayBool) -> float:
-    return np.sum(1/node_degree(np.nonzero(adjacency_matrix[u,:].astype(int) + adjacency_matrix[v,:].astype(int)),adjacency_matrix.astype(int)))
+    return np.sum(1/np.log(node_degree(np.nonzero(adjacency_matrix[u,:].astype(int) - adjacency_matrix[v,:].astype(int)==0),adjacency_matrix.astype(int))))
 
 def jaccard_coefficient(u:int, v:int, adjacency_matrix:pnd.NDArrayBool) -> float:
     return np.sum(np.where(adjacency_matrix[u,:].astype(int) - adjacency_matrix[v,:].astype(int) == 0, 1, 0))/np.sum(
@@ -384,50 +384,5 @@ def feature_for_absent_edges(edge: pd.DataFrame, node: pd.DataFrame, adjacency_m
 
     return Edge_feature
 
-# Создаем датафрейм с помощью конструктора pd.DataFrame()
-edge = pd.DataFrame({
-    'start_node': [0, 0],
-    'end_node': [1, 2],
-    'number': [100, 200],
-    'timestamp': [1634558000, 1634558100],
-    'weight_linear': [None, None],
-    'weight_exponential': [None, None],
-    'weight_square_root': [None, None]
-})
-
-# Создаем датафрейм с помощью конструктора pd.DataFrame()
-node = pd.DataFrame({
-    'number': [0, 1, 2],
-    'number_in_temporal_graph': [100, 31, 42],
-    'node_degree': [2, 3, 1],
-    'node_activity_zeroth_quantile_wl': [None for i in range(3)],
-    'node_activity_first_quantile_wl': [None for i in range(3)],
-    'node_activity_second_quantile_wl': [None for i in range(3)],
-    'node_activity_third_quantile_wl': [None for i in range(3)],
-    'node_activity_fourth_quantile_wl': [None for i in range(3)],
-    'node_activity_sum_wl': [None for i in range(3)],
-    'node_activity_mean_wl': [None for i in range(3)],
-    
-    'node_activity_zeroth_quantile_we': [None for i in range(3)],
-    'node_activity_first_quantile_we': [None for i in range(3)],
-    'node_activity_second_quantile_we': [None for i in range(3)],
-    'node_activity_third_quantile_we': [None for i in range(3)],
-    'node_activity_fourth_quantile_we': [None for i in range(3)],
-    'node_activity_sum_we': [None for i in range(3)],
-    'node_activity_mean_we': [None for i in range(3)],
-    
-    'node_activity_zeroth_quantile_wsr': [None for i in range(3)],
-    'node_activity_first_quantile_wsr': [None for i in range(3)],
-    'node_activity_second_quantile_wsr': [None for i in range(3)],
-    'node_activity_third_quantile_wsr': [None for i in range(3)],
-    'node_activity_fourth_quantile_wsr': [None for i in range(3)],
-    'node_activity_sum_wsr': [None for i in range(3)],
-    'node_activity_mean_wsr': [None for i in range(3)],
-    
-})
-
-# Edge_feature = feature_for_edges(edge, node, adjacency_matrix, 0, 20000000000)
-
-# Edge_feature = feature_for_absent_edges(edge, node, adjacency_matrix, 0, 20000000000)
 
     
