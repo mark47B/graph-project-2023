@@ -551,10 +551,10 @@ class SelectApproach:
             remaining_vertices.remove(new_vertice_index)
             sample_graph.add_node(Node(number=new_vertice_number))
             for vertice_index_sample in range(sample_graph.count_vertices()):
-                vertice_index = graph.get_node_set().loc[graph.get_node_set()["number"] == vertice_index_sample, "number"].to_list()[0]
                 vertice_number = sample_graph.get_node_set().loc[
                     sample_graph.get_node_set()["number"] == vertice_index_sample, 
                 "number_in_temporal_graph"].to_list()[0]
+                vertice_index = graph.get_node_set().loc[graph.get_node_set()["number_in_temporal_graph"] == vertice_number, "number"].to_list()[0]
                 # если вершины смежны в исходном графе, то добавим рёбра
                 if graph.adjacency_matrix[vertice_index][new_vertice_index]:
                     edge_df = graph.get_edge_set().loc[
