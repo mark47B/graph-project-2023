@@ -76,8 +76,8 @@ def graph_features_tables(datasets_info: pd.DataFrame):
         formatters={
             'Вершины': lambda x: f'{x:,}', 
             'Ребра': lambda x: f'{x:,}',
-            'Плотность графа': lambda x: f'{x:.2f}',
-            'Доля вершин': lambda x: f'{x:.2f}',
+            'Плотность графа': lambda x: f'{x:.5f}',
+            'Доля вершин': lambda x: f'{x:.4f}',
             'Компоненты с/с': lambda x: f'{x:,}',
             'Вершины в наибольшей компоненте с/с': lambda x: f'{x:,}',
             'Ребра в наибольшей компоненте с/с': lambda x: f'{x:,}',
