@@ -283,13 +283,9 @@ def count_static_topological_features(df: pd.DataFrame, adjacency_matrix: pnd.ND
     Рассчет статичных топологических признаков
     '''
     df["common_neighbours"] = df.apply(lambda row: common_neighbours(row["start_node"],row["end_node"],adjacency_matrix), axis=1)
-    print('общие соседи')
     df["adamic_adar"] = df.apply(lambda row: adamic_adar(row["start_node"],row["end_node"],adjacency_matrix), axis=1)
-    print('адамик-адар')
     df["jaccard_coefficient"] = df.apply(lambda row: jaccard_coefficient(row["start_node"],row["end_node"],adjacency_matrix), axis=1)
-    print('джакард')
     df["preferential_attachment"] = df.apply(lambda row: preferential_attachment(row["start_node"],row["end_node"],adjacency_matrix), axis=1)
-    print('аттачмент')
 
 def feature_for_edges(edge: pd.DataFrame, node: pd.DataFrame, adjacency_matrix: pnd.NDArrayBool, t_min:int, t_max:int):
     '''

@@ -12,7 +12,7 @@ datasets_info = {'Network': ['email-Eu-core-temporal', 'opsahl-ucsocial','radosl
 'Edge type': ['Multi','Multi','Multi','Simple','Multi','Multi'],
 'Path': networks_files_names}
 datasets_info = pd.DataFrame(datasets_info)
-datasets_info = datasets_info.iloc[0:1]
+datasets_info = datasets_info.iloc[3:5]
 print(datasets_info)
 latex_feature_network_table_1,latex_feature_network_table_2,latex_feature_network_table_3,latex_feature_network_table_4,latex_auc_table = vis.graph_features_tables(datasets_info)
 print(latex_feature_network_table_1)

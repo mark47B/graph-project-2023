@@ -405,7 +405,6 @@ class StaticGraph:
             for j in range(cnt_verts):
                 if shortest_paths[i][j] != 1000000000:
                     diameter = max(diameter, shortest_paths[i][j])
-        print('Посчитали диаметр графа')
         return diameter
         
 
@@ -452,7 +451,6 @@ class StaticGraph:
                         l_u += 1
 
             result += l_u / (i_degree * (i_degree - 1))
-        print('Посчитали средний кластерный коэффициент')
         return result / cnt_verts
 
     def assortative_factor(self) -> float:
