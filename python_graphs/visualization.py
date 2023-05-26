@@ -149,7 +149,7 @@ def graph_features_tables(datasets_info: pd.DataFrame):
         '90проц.расст.(ск)',
         'Радиус(свв)',
         'Диаметр(свв)',
-        '90проц.расстояния(свв)',
+        '90проц.расст.(свв)',
 
     ]
     columns_to_include_to_feature_network_table_4 = [
