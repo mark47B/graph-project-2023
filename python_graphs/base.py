@@ -258,7 +258,7 @@ class StaticGraph:
     def density(self) -> float:
         cnt_vert: int = self.count_vertices()
         cnt_edg_without_multi_edges: int = np.sum(self.adjacency_matrix.astype(int))
-        return 2 * cnt_edg_without_multi_edges / (cnt_vert * (cnt_vert - 1))
+        return cnt_edg_without_multi_edges / (cnt_vert * (cnt_vert - 1))
 
 
     def __find_size_of_connected_component(self, used, start_vertice) -> int:
@@ -406,7 +406,6 @@ class StaticGraph:
             for j in range(cnt_verts):
                 if shortest_paths[i][j] != 1000000000:
                     diameter = max(diameter, shortest_paths[i][j])
-        print('Посчитали диаметр графа')
         return diameter
         
 
@@ -453,7 +452,6 @@ class StaticGraph:
                         l_u += 1
 
             result += l_u / (i_degree * (i_degree - 1))
-        print('Посчитали средний кластерный коэффициент')
         return result / cnt_verts
 
     def assortative_factor(self) -> float:

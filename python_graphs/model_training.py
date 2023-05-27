@@ -17,7 +17,6 @@ def train_test_split_temporal_graph(edge_list:list, split_ratio: float):
 
 
 def get_performance(temporalG: TemporalGraph, split_ratio: float):
-    print('Начало get_performance')
     t_min = temporalG.get_min_timestamp()
     t_max = temporalG.get_max_timestamp()
         
@@ -27,11 +26,9 @@ def get_performance(temporalG: TemporalGraph, split_ratio: float):
     node_feature_build_part = build_static_graph.get_node_set()
 
     prediction_static_graph = temporalG.get_static_graph(split_ratio, 1, True)
-    print('Начало вычисления признаков')
     del temporalG
     gc.collect()
     Edge_feature = feature_for_absent_edges(edge_feature_build_part, node_feature_build_part, build_static_graph.adjacency_matrix, t_min, t_max)
-    print('Получили признаки')
     # del edge_feature_build_part
     # del node_feature_build_part
     # gc.collect()
@@ -82,9 +79,7 @@ def get_performance(temporalG: TemporalGraph, split_ratio: float):
         )
 
 
-    print('Начало fit-a')
     pipe.fit(X_train, y_train)
-    print('Конец fit-a')
 
     auc = metrics.roc_auc_score(
         y_true=y_test, y_score=pipe.predict_proba(X_test)[:,1])
