@@ -257,7 +257,8 @@ class StaticGraph:
 
     def density(self) -> float:
         cnt_vert: int = self.count_vertices()
-        return 2 * self.count_edges() / (cnt_vert * (cnt_vert - 1))
+        cnt_edg_without_multi_edges: int = np.sum(self.adjacency_matrix.astype(int))
+        return cnt_edg_without_multi_edges / (cnt_vert * (cnt_vert - 1))
 
 
     def __find_size_of_connected_component(self, used, start_vertice) -> int:
