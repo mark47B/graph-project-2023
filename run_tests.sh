@@ -7,5 +7,5 @@ python3.10 test.py tests/testgraphs/testgraph_5.txt tests/results/result5.txt
 python3.10 test.py tests/testgraphs/testgraph_6.txt tests/results/result6.txt
 python3.10 test.py tests/testgraphs/socfb-Middlebury45.txt tests/results/result8.txt
 python3.10 test.py tests/testgraphs/socfb-Reed98.txt tests/results/result9.txt
-python3.10 test.py tests/testgraphs/team_3.txt tests/results/result10.txt
+python3.10 test.py tests/testgraphs/team_6.txt tests/results/result10.txt
 
