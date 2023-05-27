@@ -1,7 +1,6 @@
 import pandas as pd
-import numpy as np
-import python_graphs.base as graphs
-import python_graphs.model_training as mdtr
+import base as graphs
+import model_training as mdtr
 
 import importlib
 importlib.reload(graphs)
@@ -9,16 +8,11 @@ importlib.reload(graphs)
 def get_stats(network_info):
     
     tmpGraph = graphs.TemporalGraph(network_info['Path'])
-    print('загрузили граф')
     staticGraph = tmpGraph.get_static_graph(0., 1.)
-    print('создали статичный')
     snowball_sample_approach = graphs.SelectApproach(0, 5)
     random_selected_vertices_approach = graphs.SelectApproach()
-    print('snowball START')
     sg_sb = snowball_sample_approach(staticGraph.get_largest_connected_component())
-    print('random select START')
     sg_rsv = random_selected_vertices_approach(staticGraph.get_largest_connected_component())
-    print('Получили статистику графа')
     # ск - снежный ком
     # свв - случайный выбор вершин
     result = {}

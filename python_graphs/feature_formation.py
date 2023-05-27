@@ -15,25 +15,21 @@ import pydantic_numpy.dtype as pnd
 import gc
 
 
-def node_degree(numbers_of_nodes:np.array, adjacency_matrix: pnd.NDArrayBool):
-    return np.sum(adjacency_matrix[numbers_of_nodes,:].astype(int),axis=1)
+def common_neighbours(u:int, v:int, adjacency_matrix: dict[int, dict[int, bool]]):
+    return len([0 for _ in (adjacency_matrix[u].keys() & adjacency_matrix[v].keys())])
 
-def common_neighbours(u:int, v:int, adjacency_matrix: pnd.NDArrayBool):
-    return np.sum(np.where(adjacency_matrix[u,:].astype(int) + adjacency_matrix[v,:].astype(int) == 2, 1, 0))
+def adamic_adar(u:int, v:int, adjacency_matrix: dict[int, dict[int, bool]]):
+    common_neigh = np.array([len(adjacency_matrix[k]) for k in (adjacency_matrix[u].keys() & adjacency_matrix[v].keys())])
+    return np.sum(1./np.log(common_neigh))
 
-def adamic_adar(u:int, v:int, adjacency_matrix: pnd.NDArrayBool):
-    com_nei_tuple = np.nonzero((adjacency_matrix[u, :].astype(int) + adjacency_matrix[v, :].astype(int)) == 2)[0]
-    if len(com_nei_tuple)==0:
+def jaccard_coefficient(u:int, v:int, adjacency_matrix:dict[int, dict[int, bool]]):
+    common_neigh_count = common_neighbours(u, v, adjacency_matrix)
+    if common_neigh_count == 0:
         return 0
-    else:
-        return np.sum(1/np.log(node_degree(com_nei_tuple,adjacency_matrix)))
+    return common_neigh_count / len([0 for _ in (adjacency_matrix[u].keys() | adjacency_matrix[v].keys())])
 
-def jaccard_coefficient(u:int, v:int, adjacency_matrix:pnd.NDArrayBool):
-    return np.sum(np.where(adjacency_matrix[u,:].astype(int) + adjacency_matrix[v,:].astype(int) == 2, 1, 0))/np.sum(
-        np.where(adjacency_matrix[u,:].astype(int) + adjacency_matrix[v,:].astype(int) != 0, 1, 0))
-
-def preferential_attachment(u:int, v:int, adjacency_matrix: pnd.NDArrayBool):
-    return np.prod(node_degree(np.array([u,v]), adjacency_matrix))
+def preferential_attachment(u:int, v:int, adjacency_matrix: dict[int, dict[int, bool]]):
+    return len(adjacency_matrix[u]) * len(adjacency_matrix[v])
 
 # 3 функции для вычисления весов
 
@@ -240,16 +236,6 @@ def make_edges_weights_adjacent_to_node(edge: pd.DataFrame):
     
     return edges_weights_for_node
 
-# def split_list_cell(df: pd.DataFrame, column_name: str):
-#     '''
-#     Разбиение списка на отдельные столбцы с автоматической генерацией имен
-#     '''
-#     new_columns = [str(i) for i in range(len(df[column_name].iloc[0]))]  # Генерация имен столбцов
-#
-#     return pd.concat([df.drop(column_name, axis=1),
-#                       df[column_name].apply(lambda x: pd.Series(x, index=new_columns))],
-#                      axis=1)
-
 def split_list_cell(df: pd.DataFrame, column_name: str):
     '''
     Разбиение списка на отдельные столбцы с автоматической генерацией имен
@@ -261,24 +247,7 @@ def split_list_cell(df: pd.DataFrame, column_name: str):
     return df.drop(column_name, axis=1)
 
 
-
-def merge_with_temporal_graph_number(df: pd.DataFrame,node: pd.DataFrame):
-    '''
-    Сопоставление номера в статичном графе номеру из временного графа
-    '''
-    df = pd.merge(df, node[['number',"number_in_temporal_graph"]],
-                            left_on='start_node', right_on='number')
-    
-    df = pd.merge(df, node[['number',"number_in_temporal_graph"]],
-                            left_on='end_node', right_on='number')
-    
-    df = df.drop(["number_x","number_y"], axis=1)
-    df = df.rename(columns={'number_in_temporal_graph_x': 'number_in_temporal_graph_start_node'})
-    df = df.rename(columns={'number_in_temporal_graph_y': 'number_in_temporal_graph_end_node'})
-    
-    return df
-
-def count_static_topological_features(df: pd.DataFrame, adjacency_matrix: pnd.NDArrayBool):
+def count_static_topological_features(df: pd.DataFrame, adjacency_matrix: dict[int, dict[int, bool]]):
     '''
     Рассчет статичных топологических признаков
     '''
@@ -287,7 +256,7 @@ def count_static_topological_features(df: pd.DataFrame, adjacency_matrix: pnd.ND
     df["jaccard_coefficient"] = df.apply(lambda row: jaccard_coefficient(row["start_node"],row["end_node"],adjacency_matrix), axis=1)
     df["preferential_attachment"] = df.apply(lambda row: preferential_attachment(row["start_node"],row["end_node"],adjacency_matrix), axis=1)
 
-def feature_for_edges(edge: pd.DataFrame, node: pd.DataFrame, adjacency_matrix: pnd.NDArrayBool, t_min:int, t_max:int):
+def feature_for_edges(edge: pd.DataFrame, node: pd.DataFrame, adjacency_matrix: dict[int, dict[int, bool]], t_min:int, t_max:int):
     '''
     Получение датафрейма с признаками для ребер
     '''
@@ -298,8 +267,6 @@ def feature_for_edges(edge: pd.DataFrame, node: pd.DataFrame, adjacency_matrix: 
     aggregation_of_node_activity(node,edges_weights_adjacent_to_node)
     
     Edge_feature,feature_column_name = combining_node_activity(node)
-
-    Edge_feature = merge_with_temporal_graph_number(Edge_feature, node)
     
     count_static_topological_features(Edge_feature, adjacency_matrix)
             
@@ -381,7 +348,7 @@ def combining_node_activity_for_absent_edge(node: pd.DataFrame, edge: pd.DataFra
     Edge_feature[feature_column_name] =  all_feature
     return (Edge_feature,feature_column_name)
 
-def feature_for_absent_edges(edge: pd.DataFrame, node: pd.DataFrame, adjacency_matrix: pnd.NDArrayBool, t_min:int, t_max:int):
+def feature_for_absent_edges(edge: pd.DataFrame, node: pd.DataFrame, adjacency_matrix: dict[int, dict[int, bool]], t_min:int, t_max:int):
     '''
     Получение датафрейма с признаками для ребер
     '''
@@ -394,8 +361,6 @@ def feature_for_absent_edges(edge: pd.DataFrame, node: pd.DataFrame, adjacency_m
     Edge_feature,feature_column_name = combining_node_activity_for_absent_edge(node,edge)
 
     del edge
-
-    Edge_feature = merge_with_temporal_graph_number(Edge_feature, node)
 
     del node
 

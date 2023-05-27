@@ -63,11 +63,7 @@ class TemporalGraph:
     def get_static_graph(self, l: float, r: float, prediction: bool = False) -> 'StaticGraph':
         left_index = int(l * len(self.edge_list))
         right_index = int(r * len(self.edge_list))
-        st = set()
-        for i in range(left_index, right_index):
-            st.add(self.edge_list[i].start_node.number)
-            st.add(self.edge_list[i].end_node.number)
-        sg = StaticGraph(len(st), prediction)
+        sg = StaticGraph(prediction)
         for i in range(left_index, right_index):
             sg.add_edge(self.edge_list[i])
         return sg
@@ -84,14 +80,14 @@ class StaticGraph:
     prediction: bool = False
     node_set: pd.DataFrame = None
     edge_set: pd.DataFrame = None
-    adjacency_matrix: pnd.NDArrayBool = None  # Матрица смежности
+    adjacency_matrix: dict[int, dict[int, bool]] = None # Матрица смежности
     largest_connected_component: Optional['StaticGraph'] = None
     number_of_connected_components: Optional[int] = None
     
-    def __init__(self, size: int = 10000, prediction=False):
+    def __init__(self, prediction=False):
         self.prediction = prediction
         if not prediction:
-            self.adjacency_matrix = np.full((size, size), False, dtype=bool)
+            self.adjacency_matrix = dict()
         else:
             self.adjacency_matrix = None
         self.largest_connected_component = None
@@ -102,8 +98,6 @@ class StaticGraph:
         if self.node_set is None:
             self.node_set = pd.DataFrame({
                 "number": pd.Series(dtype='int'),
-                "number_in_temporal_graph": pd.Series(dtype='int'),
-                "node_degree": pd.Series(dtype='int'),
                 "node_activity_zeroth_quantile_wl": pd.Series(dtype='float'),
                 "node_activity_first_quantile_wl": pd.Series(dtype='float'),
                 "node_activity_second_quantile_wl": pd.Series(dtype='float'),
@@ -146,105 +140,46 @@ class StaticGraph:
     def add_node(self, node: Node) -> int:
         # добавим вершину
         self.get_node_set().loc[self.count_vertices()] = {
-            "number_in_temporal_graph": node.number,
-            "node_degree": 0,
-            "number": self.count_vertices()
+            "number": node.number
         }
-        return self.count_vertices() - 1
-
-    def add_edge_non_multiedge(self, edge: Edge) -> int:
-        start_node_index: int = -1
-        end_node_index: int = -1
-        # если вершин не существует, добавим их, и сохраним их индексы
-        if self.get_node_set().loc[self.get_node_set()["number_in_temporal_graph"] == edge.start_node.number].empty:
-            start_node_index = self.add_node(edge.start_node)
-        else:
-            start_node_index = self.get_node_set().loc[
-                self.get_node_set()["number_in_temporal_graph"] == edge.start_node.number, 
-            "number"].to_list()[0]
-
-        if self.get_node_set().loc[self.get_node_set()["number_in_temporal_graph"] == edge.end_node.number].empty:
-            end_node_index = self.add_node(edge.end_node)
-        else:
-            end_node_index = self.get_node_set().loc[
-                self.get_node_set()["number_in_temporal_graph"] == edge.end_node.number, 
-            "number"].to_list()[0]
-
-        # свапнем вершины, если start_node_index > end_node_index
-        if start_node_index > end_node_index:
-            start_node_index, end_node_index = end_node_index, start_node_index
-
-        if ((self.get_edge_set()["start_node"] == start_node_index) & 
-            (self.get_edge_set()["end_node"] == end_node_index)).any(): # исправить таймстемп
-            self.get_edge_set().loc[
-                (self.get_edge_set()["start_node"] == start_node_index) &
-                (self.get_edge_set()["end_node"] == end_node_index), "timestamp"] = edge.timestamp
-        else:
-            # добавим ребро
-            self.get_edge_set().loc[self.count_edges()] = {
-                "number": edge.number,
-                "start_node": start_node_index,
-                "end_node": end_node_index,
-                "timestamp": edge.timestamp,
-            }
-            # увеличим степень вершин
-            self.get_node_set().at[start_node_index, "node_degree"] += 1
-            self.get_node_set().at[end_node_index, "node_degree"] += 1
-            
-            if not self.prediction: 
-                # обозначим, что вершины смежны
-                self.adjacency_matrix[start_node_index][end_node_index] = True
-                self.adjacency_matrix[end_node_index][start_node_index] = True
-
-        return self.count_edges() - 1
-
+        self.adjacency_matrix[node.number] = dict()
+        return self.count_vertices() - 1 
 
     def add_edge(self, edge: Edge) -> int:
-        start_node_index: int = -1
-        end_node_index: int = -1
-        # если вершин не существует, добавим их, и сохраним их индексы
-        if self.get_node_set().loc[self.get_node_set()["number_in_temporal_graph"] == edge.start_node.number].empty:
-            start_node_index = self.add_node(edge.start_node)
-        else:
-            start_node_index = self.get_node_set().loc[
-                self.get_node_set()["number_in_temporal_graph"] == edge.start_node.number, 
-            "number"].to_list()[0]
+        start_node_number = edge.start_node.number
+        end_node_number = edge.end_node.number
 
-        if self.get_node_set().loc[self.get_node_set()["number_in_temporal_graph"] == edge.end_node.number].empty:
-            end_node_index = self.add_node(edge.end_node)
-        else:
-            end_node_index = self.get_node_set().loc[
-                self.get_node_set()["number_in_temporal_graph"] == edge.end_node.number, 
-            "number"].to_list()[0]
+        # если вершин не существует, добавим их, и сохраним их индексы
+        if start_node_number not in self.adjacency_matrix.keys():
+            self.add_node(edge.start_node)
+
+        if end_node_number not in self.adjacency_matrix.keys():
+            self.add_node(edge.end_node)
 
         # свапнем вершины, если start_node_index > end_node_index
-        if start_node_index > end_node_index:
-            start_node_index, end_node_index = end_node_index, start_node_index
+        if start_node_number > end_node_number:
+            start_node_number, end_node_number = end_node_number, start_node_number
 
-        if not ((self.get_edge_set()["start_node"] == start_node_index) & 
-            (self.get_edge_set()["end_node"] == end_node_index)).any():  # если ребро пришло первый раз
-            # увеличим степень вершин
-            self.get_node_set().at[start_node_index, "node_degree"] += 1
-            self.get_node_set().at[end_node_index, "node_degree"] += 1
+        if end_node_number not in self.adjacency_matrix[start_node_number].keys():  # если ребро пришло первый раз
 
             if not self.prediction:
                 # обозначим, что вершины смежны
-                self.adjacency_matrix[start_node_index][end_node_index] = True
-                self.adjacency_matrix[end_node_index][start_node_index] = True
+                self.adjacency_matrix[start_node_number][end_node_number] = True
+                self.adjacency_matrix[end_node_number][start_node_number] = True
 
             # добавим ребро
-            self.get_edge_set().loc[self.count_edges()] = {
+            self.get_edge_set().loc[len(self.get_edge_set())] = {
                 "number": edge.number,
-                "start_node": start_node_index,
-                "end_node": end_node_index,
+                "start_node": start_node_number,
+                "end_node": end_node_number,
                 "timestamp": edge.timestamp,
             }
         elif not ((self.get_edge_set()["number"] == edge.number)).any():  # проверка на полный дубликат
             # добавим ребро
-            self.get_edge_set().loc[self.count_edges()] = {
+            self.get_edge_set().loc[len(self.get_edge_set())] = {
                 "number": edge.number,
-                "start_node": start_node_index,
-                "end_node": end_node_index,
+                "start_node": start_node_number,
+                "end_node": end_node_number,
                 "timestamp": edge.timestamp,
             }
         return self.count_edges() - 1
@@ -253,16 +188,14 @@ class StaticGraph:
         return len(self.get_node_set())
 
     def count_edges(self) -> int:
-        return len(self.get_edge_set())
+        return sum([len(self.adjacency_matrix[i]) for i in self.adjacency_matrix.keys()]) / 2
 
     def density(self) -> float:
         cnt_vert: int = self.count_vertices()
-        cnt_edg_without_multi_edges: int = np.sum(self.adjacency_matrix.astype(int))
-        return cnt_edg_without_multi_edges / (cnt_vert * (cnt_vert - 1))
+        return self.count_edges() / (cnt_vert * (cnt_vert - 1))
 
 
-    def __find_size_of_connected_component(self, used, start_vertice) -> int:
-        cnt_vert = self.count_vertices()
+    def __find_size_of_connected_component(self, used: dict, start_vertice) -> int:
         queue = list()
         used[start_vertice] = True
         queue.append(start_vertice)
@@ -272,33 +205,25 @@ class StaticGraph:
         while len(queue) > 0:
             v = queue.pop(0)
             size += 1
-            for to in range(cnt_vert):
-                if not self.adjacency_matrix[v][to]:
-                    continue
-                if not used[to]:
+            for to in self.adjacency_matrix[v].keys():
+                if to not in used.keys():
                     used[to] = True
                     queue.append(to)
         
         return size
     
-    def __find_largest_connected_component(self, used, start_vertice):
+    def __find_largest_connected_component(self, used: dict, start_vertice):
         # Обойдём всю компоненту слабой связности и запишем её как отдельный граф
-        cnt_vert = self.count_vertices()
         queue = list()
         used[start_vertice] = True
         queue.append(start_vertice)
 
         while len(queue) > 0:
             v = queue.pop(0)
-            for to in range(cnt_vert):
-                if not self.adjacency_matrix[v][to]:
-                    continue
-                if not used[to]:
+            for to in self.adjacency_matrix[v].keys():
+                if to not in used.keys():
                     used[to] = True
                     queue.append(to)
-
-                v_number = self.get_node_set().at[v, "number_in_temporal_graph"]
-                to_number = self.get_node_set().at[to, "number_in_temporal_graph"]
 
                 edge_df = self.get_edge_set().loc[
                     (self.get_edge_set()["start_node"] == min(v, to)) & 
@@ -307,8 +232,8 @@ class StaticGraph:
                 for _, row in edge_df.iterrows():
                     new_edge = Edge(
                         number=row["number"], 
-                        start_node=Node(number=v_number),
-                        end_node=Node(number=to_number),
+                        start_node=Node(number=v),
+                        end_node=Node(number=to),
                         timestamp=row["timestamp"])
                     self.largest_connected_component.add_edge(new_edge)
 
@@ -316,25 +241,24 @@ class StaticGraph:
     def __update_number_of_connected_components_and_largest_connected_component(self):
         # Запустим DFS от каждой ещё не посещённой вершины, получая компоненты слабой связности
         # Заодно считаем количество этих компонент и максимальную по мощности компоненту слабой связности
-        cnt_vert: int = self.count_vertices()
-        used = [False for _ in range(cnt_vert)]
+        used = dict()
         vertice: int = 0
         self.number_of_connected_components = 0
         max_component_size: int = 0
-        for i in range(cnt_vert):
-            if not used[i]:
+        for v in self.adjacency_matrix.keys():
+            if v not in used.keys():
                 self.number_of_connected_components += 1
-                component_size = self.__find_size_of_connected_component(used, i)
+                component_size = self.__find_size_of_connected_component(used, v)
                 if component_size > max_component_size:
                     max_component_size = component_size
-                    vertice = i
+                    vertice = v
 
         # Обновляем посещенность вершин для обработки максимальной по мощности компоненты
         # слабой связности
-        used = [False for _ in range(cnt_vert)]
+        used.clear()
 
         # Нашли максимальную по мощности компоненту слабой связности, запишем её в поле
-        self.largest_connected_component = StaticGraph(max_component_size)
+        self.largest_connected_component = StaticGraph()
         self.__find_largest_connected_component(used, vertice)
 
     def get_largest_connected_component(self) -> 'StaticGraph':
@@ -359,25 +283,24 @@ class StaticGraph:
         sample_graph: StaticGraph = method
 
         # Алгоритм Флойда-Уоршелла
-        cnt_verts = sample_graph.count_vertices()
-        shortest_paths = np.zeros((cnt_verts, cnt_verts))
-        for i in range(cnt_verts):
-            for j in range(cnt_verts):
-                if sample_graph.adjacency_matrix[i][j]:
-                    shortest_paths[i][j] = 1
-                else:
-                    shortest_paths[i][j] = 1000000000
-        for k in range(cnt_verts):
-            for i in range(cnt_verts):
-                for j in range(cnt_verts):
-                    shortest_paths[i][j] = min(shortest_paths[i][j], shortest_paths[i][k] + shortest_paths[k][j])
+        shortest_paths: dict[int, dict[int, int]] = dict()
+        for i in sample_graph.adjacency_matrix.keys():
+            shortest_paths[i] = dict()
+            for j in sample_graph.adjacency_matrix[i].keys():
+                shortest_paths[i][j] = 1
+        for k in shortest_paths.keys():
+            for i in shortest_paths[k].keys():
+                for j in shortest_paths[k].keys():
+                    if j not in shortest_paths[i].keys():
+                        shortest_paths[i][j] = shortest_paths[i][k] + shortest_paths[k][j]
+                    else:
+                        shortest_paths[i][j] = min(shortest_paths[i][j], shortest_paths[i][k] + shortest_paths[k][j])
 
         radius = 1000000000
-        for i in range(cnt_verts):
+        for i in shortest_paths.keys():
             eccentricity = 0
-            for j in range(cnt_verts):
-                if shortest_paths[i][j] != 1000000000:
-                    eccentricity = max(eccentricity, shortest_paths[i][j])
+            for j in shortest_paths[i].keys():
+                eccentricity = max(eccentricity, shortest_paths[i][j])
             if eccentricity > 0:
                 radius = min(radius, eccentricity)
         return radius
@@ -388,23 +311,22 @@ class StaticGraph:
         sample_graph: StaticGraph = method
 
         # Алгоритм Флойда-Уоршелла
-        cnt_verts = sample_graph.count_vertices()
-        shortest_paths = np.zeros((cnt_verts, cnt_verts))
-        for i in range(cnt_verts):
-            for j in range(cnt_verts):
-                if sample_graph.adjacency_matrix[i][j]:
-                    shortest_paths[i][j] = 1
-                else:
-                    shortest_paths[i][j] = 1000000000
-        for k in range(cnt_verts):
-            for i in range(cnt_verts):
-                for j in range(cnt_verts):
-                    shortest_paths[i][j] = min(shortest_paths[i][j], shortest_paths[i][k] + shortest_paths[k][j])
+        shortest_paths: dict[int, dict[int, int]] = dict()
+        for i in sample_graph.adjacency_matrix.keys():
+            shortest_paths[i] = dict()
+            for j in sample_graph.adjacency_matrix[i].keys():
+                shortest_paths[i][j] = 1
+        for k in shortest_paths.keys():
+            for i in shortest_paths[k].keys():
+                for j in shortest_paths[k].keys():
+                    if j not in shortest_paths[i].keys():
+                        shortest_paths[i][j] = shortest_paths[i][k] + shortest_paths[k][j]
+                    else:
+                        shortest_paths[i][j] = min(shortest_paths[i][j], shortest_paths[i][k] + shortest_paths[k][j])
 
         diameter = 0
-        for i in range(cnt_verts):
-            for j in range(cnt_verts):
-                if shortest_paths[i][j] != 1000000000:
+        for i in shortest_paths.keys():
+            for j in shortest_paths[i].keys():
                     diameter = max(diameter, shortest_paths[i][j])
         return diameter
         
@@ -415,103 +337,94 @@ class StaticGraph:
 
         # Алгоритм Флойда-Уоршелла
         cnt_verts = sample_graph.count_vertices()
-        shortest_paths = np.zeros((cnt_verts, cnt_verts))
-        for i in range(cnt_verts):
-            for j in range(cnt_verts):
-                if sample_graph.adjacency_matrix[i][j]:
-                    shortest_paths[i][j] = 1
-                else:
-                    shortest_paths[i][j] = 1000000000
-        for k in range(cnt_verts):
-            for i in range(cnt_verts):
-                for j in range(cnt_verts):
-                    shortest_paths[i][j] = min(shortest_paths[i][j], shortest_paths[i][k] + shortest_paths[k][j])
+        shortest_paths: dict[int, dict[int, int]] = dict()
+        for i in sample_graph.adjacency_matrix.keys():
+            shortest_paths[i] = dict()
+            for j in sample_graph.adjacency_matrix[i].keys():
+                shortest_paths[i][j] = 1
+        for k in shortest_paths.keys():
+            for i in shortest_paths[k].keys():
+                for j in shortest_paths[k].keys():
+                    if j not in shortest_paths[i].keys():
+                        shortest_paths[i][j] = shortest_paths[i][k] + shortest_paths[k][j]
+                    else:
+                        shortest_paths[i][j] = min(shortest_paths[i][j], shortest_paths[i][k] + shortest_paths[k][j])
+
         dists = []
-        for i in range(cnt_verts):
-            for j in range(cnt_verts):
-                if shortest_paths[i][j] != 1000000000:
-                    dists.append(shortest_paths[i][j])
+        for i in shortest_paths.keys():
+            for j in shortest_paths[i].keys():
+                dists.append(shortest_paths[i][j])
         dists.sort()
         return dists[int(percentile / 100 * (len(dists) - 1))]
     
     def average_cluster_factor(self) -> float:
         cnt_verts = self.get_largest_connected_component().count_vertices()
         result = 0
-        for i in range(cnt_verts):
-            i_degree = self.get_largest_connected_component().get_node_set().at[i, "node_degree"]
+        for i in self.get_largest_connected_component().adjacency_matrix.keys():
+            i_degree = len(self.get_largest_connected_component().adjacency_matrix[i])
             if i_degree < 2: 
                 continue
             l_u = 0
-            for j in range(cnt_verts):
-                if i == j or (not self.get_largest_connected_component().adjacency_matrix[i][j]):
-                    continue
-                for k in range(cnt_verts):
-                    if k == j or k == i or (not self.get_largest_connected_component().adjacency_matrix[i][k]):
-                        continue
-                    if self.get_largest_connected_component().adjacency_matrix[j][k]:
+            for j in self.get_largest_connected_component().adjacency_matrix[i].keys():
+                for k in self.get_largest_connected_component().adjacency_matrix[i].keys():
+                    if k in self.get_largest_connected_component().adjacency_matrix[j]:
                         l_u += 1
 
             result += l_u / (i_degree * (i_degree - 1))
         return result / cnt_verts
 
     def assortative_factor(self) -> float:
-        # считаем по формулке из статьи Ньюмана 2002 года
-        m = sum(self.get_largest_connected_component().get_node_set()["node_degree"].to_list()) / 2
-        cnt_vert = self.get_largest_connected_component().count_vertices()
+        re = 0
         r1 = 0
         r2 = 0
         r3 = 0
-        for u in range(cnt_vert):
-            for v in range(u + 1, cnt_vert):
-                if not self.get_largest_connected_component().adjacency_matrix[u][v]:
-                    continue
-                v_degree = self.get_largest_connected_component().get_node_set().at[u, "node_degree"]
-                u_degree = self.get_largest_connected_component().get_node_set().at[v, "node_degree"]
+        for u in self.get_largest_connected_component().adjacency_matrix.keys():
+            u_degree = len(self.get_largest_connected_component().adjacency_matrix[u])
+            r1 += u_degree
+            r2 += u_degree**2
+            r3 += u_degree**3
+            for v in self.get_largest_connected_component().adjacency_matrix[u].keys():
+                v_degree = len(self.get_largest_connected_component().adjacency_matrix[v])
+                re += u_degree * v_degree
 
-                r1 += u_degree * v_degree
-                r2 += (u_degree + v_degree) / 2
-                r3 += (u_degree * u_degree + v_degree * v_degree) / 2
-
-        return (r1 - (r2 * r2) / m) / (r3 - (r2 * r2) / m)
+        return (re * r1 - (r2 * r2)) / (r3 * r1- (r2 * r2))
 
 
 @dataclass
 class SelectApproach:
-    start_node1_index: Optional[int]
-    start_node2_index: Optional[int]
+    start_node1_number: Optional[int]
+    start_node2_number: Optional[int]
 
-    def __init__(self, s_node1_index: int = None, s_node2_index: int = None):
-        self.start_node1_index = s_node1_index
-        self.start_node2_index = s_node2_index
+    def __init__(self, s_node1_number: int = None, s_node2_number: int = None):
+        self.start_node1_number = s_node1_number
+        self.start_node2_number = s_node2_number
 
     
     def snowball_sample(self, graph: StaticGraph) -> StaticGraph:
         queue = list()
-        start_node_index1 = self.start_node1_index
-        start_node_index2 = self.start_node2_index
+        start_node1_number = self.start_node1_number
+        start_node2_number = self.start_node2_number
 
         # добавляем две вершины в очередь для BFS
-        queue.append(start_node_index1)
-        queue.append(start_node_index2)
+        queue.append(start_node1_number)
+        queue.append(start_node2_number)
         cnt_verts = graph.count_vertices()
 
 
         size = min(500, cnt_verts)
 
-        sample_graph = StaticGraph(size)  # новый граф, который должны получить в результате
+        sample_graph = StaticGraph()  # новый граф, который должны получить в результате
 
-        used = [False for _ in range(cnt_verts)]
-        used[start_node_index1] = True
-        used[start_node_index2] = True
+        used = dict()
+        used[start_node1_number] = True
+        used[start_node2_number] = True
 
         size -= 2
 
         while len(queue) > 0:  # BFS
             v = queue.pop(0)
-            for i in range(cnt_verts):
-                if not graph.adjacency_matrix[v][i]:
-                    continue
-                if not used[i]:
+            for i in graph.adjacency_matrix[v]:
+                if i not in used.keys():
                     if size > 0:
                         used[i] = True
                         size -= 1
@@ -519,8 +432,6 @@ class SelectApproach:
                     else:
                         continue
                 # добавляем рёбра
-                v_number = graph.get_node_set().at[v, "number"]
-                i_number = graph.get_node_set().at[i, "number"]
                 edge_df = graph.get_edge_set().loc[
                     (graph.get_edge_set()["start_node"] == min(v, i)) & 
                     (graph.get_edge_set()["end_node"] ==  max(v, i)),
@@ -528,43 +439,36 @@ class SelectApproach:
                 for _, row in edge_df.iterrows():
                     new_edge = Edge(
                         number=row["number"], 
-                        start_node=Node(number=v_number),
-                        end_node=Node(number=i_number),
+                        start_node=Node(number=v),
+                        end_node=Node(number=i),
                         timestamp=row["timestamp"]
                     )
                     sample_graph.add_edge(new_edge)
         return sample_graph
 
     def random_selected_vertices(self, graph: StaticGraph) -> StaticGraph:
-        remaining_vertices = [int(i) for i in range(graph.count_vertices())]  # множество оставшихся вершин
+        remaining_vertices = list(graph.adjacency_matrix.keys()) # множество оставшихся вершин
         size = min(500, graph.count_vertices())
-        sample_graph = StaticGraph(size)  # новый граф, который должны получить в результате
+        sample_graph = StaticGraph()  # новый граф, который должны получить в результате
 
         for _ in range(size):
             # выберем новую вершину для добавления в граф
-            new_vertice_index = remaining_vertices[np.random.randint(0, len(remaining_vertices))]
-            new_vertice_number = graph.get_node_set().loc[
-                graph.get_node_set()["number"] == new_vertice_index, 
-            "number_in_temporal_graph"].to_list()[0]
+            new_vertice = remaining_vertices[np.random.randint(0, len(remaining_vertices))]
 
-            remaining_vertices.remove(new_vertice_index)
-            sample_graph.add_node(Node(number=new_vertice_number))
-            for vertice_index_sample in range(sample_graph.count_vertices()):
-                vertice_number = sample_graph.get_node_set().loc[
-                    sample_graph.get_node_set()["number"] == vertice_index_sample, 
-                "number_in_temporal_graph"].to_list()[0]
-                vertice_index = graph.get_node_set().loc[graph.get_node_set()["number_in_temporal_graph"] == vertice_number, "number"].to_list()[0]
+            remaining_vertices.remove(new_vertice)
+            sample_graph.add_node(Node(number=new_vertice))
+            for vertice in sample_graph.adjacency_matrix.keys():
                 # если вершины смежны в исходном графе, то добавим рёбра
-                if graph.adjacency_matrix[vertice_index][new_vertice_index]:
+                if new_vertice in graph.adjacency_matrix[vertice].keys():
                     edge_df = graph.get_edge_set().loc[
-                        (graph.get_edge_set()["start_node"] == min(vertice_index, new_vertice_index)) &  
-                        (graph.get_edge_set()["end_node"] == max(vertice_index, new_vertice_index)),
+                        (graph.get_edge_set()["start_node"] == min(vertice, new_vertice)) &  
+                        (graph.get_edge_set()["end_node"] == max(vertice, new_vertice)),
                     ["number", "timestamp"]]
                     for _, row in edge_df.iterrows():
                         new_edge = Edge(
                             number=row["number"], 
-                            start_node=Node(number=new_vertice_number),
-                            end_node=Node(number=vertice_number),
+                            start_node=Node(number=new_vertice),
+                            end_node=Node(number=vertice),
                             timestamp=row["timestamp"])
                         sample_graph.add_edge(new_edge)
 
@@ -572,6 +476,6 @@ class SelectApproach:
             
 
     def __call__(self, graph: StaticGraph):
-        if self.start_node1_index is None:
+        if self.start_node1_number is None:
             return self.random_selected_vertices(graph)
         return self.snowball_sample(graph)

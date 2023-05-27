@@ -1,5 +1,5 @@
-from .base import TemporalGraph
-from .feature_formation import feature_for_edges, feature_for_absent_edges
+import base as graphs
+from feature_formation import feature_for_absent_edges
 from sklearn import model_selection, pipeline, preprocessing, linear_model, metrics
 import numpy as np
 import gc
@@ -16,7 +16,7 @@ def train_test_split_temporal_graph(edge_list:list, split_ratio: float):
 
 
 
-def get_performance(temporalG: TemporalGraph, split_ratio: float):
+def get_performance(temporalG: graphs.TemporalGraph, split_ratio: float):
     t_min = temporalG.get_min_timestamp()
     t_max = temporalG.get_max_timestamp()
         
@@ -36,24 +36,10 @@ def get_performance(temporalG: TemporalGraph, split_ratio: float):
     node_prediction_part = prediction_static_graph.get_node_set()
     edge_prediction_part = prediction_static_graph.get_edge_set()
 
-    # выделить в отдельную функцию по присоединению 
-    # номеров вершин из темпорального графа к edge_list
-    edge_prediction_part = edge_prediction_part.merge(
-        node_prediction_part[['number','number_in_temporal_graph']], left_on='start_node', right_on='number', how='left')
-    
-    edge_prediction_part = edge_prediction_part.rename(columns={'number_in_temporal_graph': 'number_in_temporal_graph_start_node'})
-
-    
-    edge_prediction_part = edge_prediction_part.merge(
-        node_prediction_part[['number','number_in_temporal_graph']], left_on='end_node', right_on='number', how='left')
-    
-    edge_prediction_part = edge_prediction_part.rename(columns={'number_in_temporal_graph': 'number_in_temporal_graph_end_node'})
-
-
     Edge_feature = Edge_feature.merge(
-        edge_prediction_part[['number_in_temporal_graph_start_node','number_in_temporal_graph_end_node','number']],
-        left_on=['number_in_temporal_graph_start_node','number_in_temporal_graph_end_node'], 
-        right_on=['number_in_temporal_graph_start_node','number_in_temporal_graph_end_node'], 
+        edge_prediction_part[['start_node','end_node','number']],
+        left_on=['start_node','end_node'], 
+        right_on=['start_node','end_node'], 
         how='left')
 
     del edge_prediction_part
@@ -62,7 +48,7 @@ def get_performance(temporalG: TemporalGraph, split_ratio: float):
     
     Edge_feature['number'] = Edge_feature['number'].apply(lambda x: 0 if np.isnan(x) else 1)
 
-    X = Edge_feature.drop(['number','start_node','end_node','number_in_temporal_graph_start_node','number_in_temporal_graph_end_node'], axis=1)
+    X = Edge_feature.drop(['number','start_node','end_node'], axis=1)
     
     y = Edge_feature['number']
 

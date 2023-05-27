@@ -5,7 +5,7 @@ import sys
 test_graph_path = sys.argv[1]
 output_path = sys.argv[2]
 
-staticGraph = graphs.StaticGraph(20000)
+staticGraph = graphs.StaticGraph()
 
 with open(test_graph_path, 'r') as edges:
     list_of_items = edges.read().split('\n')
@@ -25,7 +25,7 @@ with open(test_graph_path, 'r') as edges:
         )
         edge_number += 1
 
-snowball_sample_approach = graphs.SelectApproach(0, 1)
+snowball_sample_approach = graphs.SelectApproach(1, 2)
 random_selected_vertices_approach = graphs.SelectApproach()
 
 with open(output_path, 'w') as out:
